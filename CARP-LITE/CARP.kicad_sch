@@ -7624,6 +7624,16 @@
 		)
 		(uuid "cb0c9c34-c364-4806-a570-130ebc9324e8")
 	)
+	(text "##### TODO #####\n\nchoose and optimize footprints\n\ndouble check pyro circuits\n\nponder servo power\n"
+		(exclude_from_sim no)
+		(at 261.112 187.706 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "ccfc0ee6-a781-4c11-8958-fae7b5e6580b")
+	)
 	(text "BMP390 HIGH SPEED"
 		(exclude_from_sim no)
 		(at 160.274 80.264 0)

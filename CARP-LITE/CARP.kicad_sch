@@ -5,10 +5,12 @@
 	(uuid "94683f5c-9cd9-448e-be96-9792537b5cb8")
 	(paper "A3")
 	(title_block
-		(title "RP2350A QFN-60 Dual-Flash testbed")
+		(title "CARP-LITE")
 		(date "2026-03-11")
 		(rev "V1")
-		(company "Aweerware & Co.")
+		(company "Silesian Aerospace Technologies")
+		(comment 1 "Aria Wiktoria Horak")
+		(comment 2 "Marcin Czop")
 	)
 	(lib_symbols
 		(symbol "2026-03-13_01-43-10:BMP390"

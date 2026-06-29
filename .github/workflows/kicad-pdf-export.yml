@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: kicad/kicad:10.0
+      options: --user root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -1,0 +1,39 @@
+# KiCad 10.0 .gitignore
+
+# Temporary files, autosaves, and backups
+*.bck
+*.tmp
+*.bak
+*-bak
+*~
+_autosave-*
+*-save.pro
+*-save.kicad_pcb
+*-save.kicad_sch
+
+# KiCad user-specific local settings (UI preferences, active layers, etc.)
+*.kicad_prl
+
+# Footprint and symbol cache files
+fp-info-cache
+sym-info-cache
+
+# Netlists and BOMs (Build artifacts)
+*.net
+*.xml
+*.csv
+
+# Fabrication output directories (Best practice is to generate these into a subfolder)
+gerber/
+gerbers/
+fab/
+fabrication/
+production/
+outputs/
+
+# Fabrication files (If generated in the root directory)
+*.gbr
+*.drl
+*.gbrjob
+*.pos
+*.rpt

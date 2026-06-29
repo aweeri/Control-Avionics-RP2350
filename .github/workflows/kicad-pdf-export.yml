@@ -1,20 +1,40 @@
 name: Export KiCad Schematic PDFs
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '**/*.kicad_sch'
-      - '**/*.kicad_pro'
-      - '.github/workflows/kicad-pdf-export.yml'
+  schedule:
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run_export: ${{ steps.check_changes.outputs.run_export }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for schematic changes
+        id: check_changes
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if git log --since="24 hours ago" --name-only | grep -E '\.kicad_sch$|\.kicad_pro$'; then
+              echo "run_export=true" >> $GITHUB_OUTPUT
+            else
+              echo "run_export=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "run_export=true" >> $GITHUB_OUTPUT
+          fi
+
   generate-pdfs:
+    needs: check-changes
+    if: needs.check-changes.outputs.run_export == 'true'
     runs-on: ubuntu-latest
     container:
       image: kicad/kicad:10.0
@@ -48,7 +68,8 @@ jobs:
           path: "**/pdf/*.pdf"
 
   commit-pdfs:
-    needs: generate-pdfs
+    needs: [check-changes, generate-pdfs]
+    if: needs.check-changes.outputs.run_export == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

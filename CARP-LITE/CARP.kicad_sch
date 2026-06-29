@@ -7333,16 +7333,6 @@
 	)
 	(wire
 		(pts
-			(xy 257.81 119.38) (xy 257.81 127)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "09d87e99-54c6-4981-af90-5762411c757c")
-	)
-	(wire
-		(pts
 			(xy 143.51 259.08) (xy 143.51 257.81)
 		)
 		(stroke
@@ -8133,7 +8123,7 @@
 	)
 	(wire
 		(pts
-			(xy 236.22 119.38) (xy 233.68 119.38)
+			(xy 236.22 127) (xy 233.68 127)
 		)
 		(stroke
 			(width 0)
@@ -9163,7 +9153,7 @@
 	)
 	(wire
 		(pts
-			(xy 243.84 119.38) (xy 245.11 119.38)
+			(xy 243.84 127) (xy 245.11 127)
 		)
 		(stroke
 			(width 0)
@@ -9520,16 +9510,6 @@
 			(type default)
 		)
 		(uuid "bc0f99e5-889e-42ac-be84-c10ff15baec4")
-	)
-	(wire
-		(pts
-			(xy 257.81 127) (xy 273.05 127)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "bc6178a8-8186-4215-9005-3400918a86cf")
 	)
 	(wire
 		(pts
@@ -10073,7 +10053,7 @@
 	)
 	(wire
 		(pts
-			(xy 233.68 119.38) (xy 233.68 123.19)
+			(xy 233.68 127) (xy 233.68 128.27)
 		)
 		(stroke
 			(width 0)
@@ -10303,7 +10283,7 @@
 	)
 	(wire
 		(pts
-			(xy 255.27 119.38) (xy 257.81 119.38)
+			(xy 255.27 127) (xy 273.05 127)
 		)
 		(stroke
 			(width 0)
@@ -14578,7 +14558,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 240.03 119.38 270)
+		(at 240.03 127 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -14588,7 +14568,7 @@
 		(dnp no)
 		(uuid "1baf75ce-b576-4e5b-a968-eae4e1150743")
 		(property "Reference" "R9"
-			(at 240.03 114.1222 90)
+			(at 240.03 121.7422 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14598,7 +14578,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 240.03 116.4336 90)
+			(at 240.03 124.0536 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14608,7 +14588,7 @@
 			)
 		)
 		(property "Footprint" "PCM_Resistor_SMD_AKL:R_0603_1608Metric"
-			(at 240.03 117.602 90)
+			(at 240.03 125.222 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14619,7 +14599,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 240.03 119.38 0)
+			(at 240.03 127 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14630,7 +14610,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 240.03 119.38 0)
+			(at 240.03 127 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16022,7 +16002,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_Push")
-		(at 250.19 119.38 0)
+		(at 250.19 127 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -16033,7 +16013,7 @@
 		(fields_autoplaced yes)
 		(uuid "31beb0b3-741d-4ea8-9364-2da49879897e")
 		(property "Reference" "SW2"
-			(at 250.19 112.7592 0)
+			(at 250.19 120.3792 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16043,7 +16023,7 @@
 			)
 		)
 		(property "Value" "SW_Push"
-			(at 250.19 115.2961 0)
+			(at 250.19 122.9161 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16053,7 +16033,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_SMD:SW_Push_1P1T_NO_Vertical_Wuerth_434133025816"
-			(at 250.19 114.3 0)
+			(at 250.19 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16064,7 +16044,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 250.19 114.3 0)
+			(at 250.19 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16075,7 +16055,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 250.19 119.38 0)
+			(at 250.19 127 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -22802,7 +22782,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 233.68 123.19 0)
+		(at 233.68 128.27 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -22812,7 +22792,7 @@
 		(dnp no)
 		(uuid "f20187ba-bb64-46c4-87d8-045556e9b148")
 		(property "Reference" "#PWR022"
-			(at 233.68 129.54 0)
+			(at 233.68 134.62 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22823,7 +22803,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 229.87 124.46 0)
+			(at 229.87 129.54 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -22833,7 +22813,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 233.68 123.19 0)
+			(at 233.68 128.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22844,7 +22824,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 233.68 123.19 0)
+			(at 233.68 128.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22855,7 +22835,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 233.68 123.19 0)
+			(at 233.68 128.27 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects

@@ -1,0 +1,78 @@
+name: Export KiCad Schematic PDFs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.kicad_sch'
+      - '**/*.kicad_pro'
+      - '.github/workflows/kicad-pdf-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-pdfs:
+    runs-on: ubuntu-latest
+    container:
+      image: kicad/kicad:10.0
+      options: --user root
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate PDFs
+        run: |
+          find . -name "*.kicad_pro" | while read -r pro_file; do
+            dir=$(dirname "$pro_file")
+            base=$(basename "$pro_file" .kicad_pro)
+            sch_file="$dir/$base.kicad_sch"
+            
+            if [ -f "$sch_file" ]; then
+              echo "Found project: $pro_file"
+              echo "Schematic: $sch_file"
+              mkdir -p "$dir/pdf"
+              echo "Exporting to $dir/pdf/$base.pdf..."
+              kicad-cli sch export pdf --output "$dir/pdf/$base.pdf" "$sch_file"
+            else
+              echo "No schematic file matching $sch_file found for project $pro_file"
+            fi
+          done
+
+      - name: Upload PDFs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-schematics
+          path: "**/pdf/*.pdf"
+
+  commit-pdfs:
+    needs: generate-pdfs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download PDFs
+        uses: actions/download-artifact@v4
+        with:
+          name: pdf-schematics
+          path: .
+
+      - name: Commit and Push PDFs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add any generated pdf directories
+          git add "**/pdf/*.pdf"
+          
+          if git diff --cached --quiet; then
+            echo "No changes in schematic PDFs to commit."
+          else
+            git commit -m "Auto-generate and update schematic PDFs [skip ci]"
+            git push origin main
+          fi

@@ -2,8 +2,16 @@
 	(version 20260306)
 	(generator "eeschema")
 	(generator_version "10.0")
-	(uuid "da123d69-cce4-4a09-8ede-dd5796a3f6fa")
+	(uuid "89c2a54b-8060-4de7-b1fb-910e3938844c")
 	(paper "A4")
+	(title_block
+		(title "CARP-LITE")
+		(date "2026-06-29")
+		(rev "V1")
+		(company "Silesian Aerospace Technologies")
+		(comment 1 "Marcin Czop")
+		(comment 2 "Aria Wiktoria Horak")
+	)
 	(lib_symbols
 		(symbol "Connector:Conn_Coaxial_Small"
 			(pin_numbers

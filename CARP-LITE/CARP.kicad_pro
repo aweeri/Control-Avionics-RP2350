@@ -686,6 +686,12 @@
           "label": "#",
           "name": "${ITEM_NUMBER}",
           "show": false
+        },
+        {
+          "group_by": false,
+          "label": "MFR",
+          "name": "MFR",
+          "show": false
         }
       ],
       "filter_string": "",
@@ -754,7 +760,7 @@
         "uuid": "94683f5c-9cd9-448e-be96-9792537b5cb8"
       }
     ],
-    "used_designators": "R23,R35,Y2,Q3,Q5-7,U9,C3-4,C36-57,L2-13,#PWR89-108,TH1,J7,J11,FB1-3",
+    "used_designators": "R23,R35,Y2,Q3,Q5-7,U9,C3-4,C36-57,L2-13,#PWR89-108,TH1,J7,J11,FB1-4",
     "variants": []
   },
   "sheets": [

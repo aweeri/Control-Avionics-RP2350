@@ -2,7 +2,7 @@
 	(version 20260306)
 	(generator "eeschema")
 	(generator_version "10.0")
-	(uuid "1c0fbefc-9fc6-4518-932e-6d8d32ff08ad")
+	(uuid "da123d69-cce4-4a09-8ede-dd5796a3f6fa")
 	(paper "A4")
 	(lib_symbols
 		(symbol "Connector:Conn_Coaxial_Small"
@@ -4979,6 +4979,96 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:FerriteBead_Small")
+		(at 171.45 52.07 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "3b9eec45-42c3-4192-b4bb-7d513de95b22")
+		(property "Reference" "FB1"
+			(at 171.45 45.212 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "60@100M"
+			(at 171.45 47.752 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Inductor_SMD:L_0603_1608Metric"
+			(at 171.45 53.848 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 171.45 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Ferrite bead, small symbol"
+			(at 171.45 52.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFR" "ILHB0603ER600V"
+			(at 171.45 52.07 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "43316f72-d23b-4401-b6b1-16a04d409995")
+		)
+		(pin "1"
+			(uuid "4b7aff9a-4440-4c55-941e-40b636464ebf")
+		)
+		(instances
+			(project "CARP"
+				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8/fbf78cf6-1e60-4f5c-8e3f-17a0841f8e52"
+					(reference "FB1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 218.44 59.69 0)
 		(unit 1)
@@ -5401,7 +5491,7 @@
 				)
 			)
 		)
-		(property "Value" "50@100M"
+		(property "Value" "60@100M"
 			(at 147.32 48.006 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5435,6 +5525,17 @@
 		)
 		(property "Description" "Ferrite bead, small symbol"
 			(at 147.32 57.15 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFR" "ILHB0603ER600V"
+			(at 147.32 57.15 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5594,6 +5695,17 @@
 		)
 		(property "Description" "Ferrite bead, small symbol"
 			(at 138.43 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFR" "ILHB0603ER600V"
+			(at 138.43 76.2 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6249,86 +6361,6 @@
 			(project "CARP"
 				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8/fbf78cf6-1e60-4f5c-8e3f-17a0841f8e52"
 					(reference "#PWR090")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:FerriteBead_Small")
-		(at 171.45 52.07 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "7d762242-3f68-479f-b79b-750338c9bbac")
-		(property "Reference" "FB1"
-			(at 171.4119 45.72 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "50@100M"
-			(at 171.4119 48.26 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Inductor_SMD:L_0603_1608Metric"
-			(at 171.45 53.848 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 171.45 52.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Ferrite bead, small symbol"
-			(at 171.45 52.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "19e73c78-1cd9-4f02-a3c1-fd37c61a3df1")
-		)
-		(pin "1"
-			(uuid "a9cca1a6-e71c-4479-b578-5c22196cc9df")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8/fbf78cf6-1e60-4f5c-8e3f-17a0841f8e52"
-					(reference "FB1")
 					(unit 1)
 				)
 			)
@@ -7520,6 +7552,17 @@
 			)
 		)
 		(property "Description" "Inductor, small symbol"
+			(at 127 68.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MFR" "IMC2220ER4R7K"
 			(at 127 68.58 0)
 			(hide yes)
 			(show_name no)

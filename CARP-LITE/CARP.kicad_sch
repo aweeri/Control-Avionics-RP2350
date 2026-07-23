@@ -7964,7 +7964,7 @@
 	)
 	(text "5.1V@3A Rated\nReplace 5V and 6V LDOs?"
 		(exclude_from_sim no)
-		(at 96.012 -38.354 0)
+		(at 99.568 -40.894 0)
 		(effects
 			(font
 				(size 1.905 1.905)
@@ -7996,6 +7996,16 @@
 			(justify left)
 		)
 		(uuid "1990b067-37a0-4190-be31-ca7b6b07373b")
+	)
+	(text "https://webench.ti.com/appinfo/webench/scripts/SDP.cgi?ID=C286E5AA1AB0EE45"
+		(exclude_from_sim no)
+		(at 99.568 -36.83 0)
+		(effects
+			(font
+				(size 0.635 0.635)
+			)
+		)
+		(uuid "2a6bf2dd-6325-4b4c-8cde-e530d2b19352")
 	)
 	(text "info for choosing an NMOS:\n1.5v max gate threshold voltage\non-resistance: V_gs 2.5V or 1.8V (NO FET)\nV_ds 20V minimum"
 		(exclude_from_sim no)
@@ -8225,6 +8235,16 @@
 		)
 		(uuid "da45ca64-15dc-4799-8e74-195a9ac9d56f")
 	)
+	(text "Maybe more caps because servos\n"
+		(exclude_from_sim no)
+		(at 128.524 -18.796 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "ddb3055a-1867-4039-89b2-f5863a484d18")
+	)
 	(text "Power Delivery"
 		(exclude_from_sim no)
 		(at 114.046 125.222 0)
@@ -8382,12 +8402,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "4204df92-1682-41bf-b22b-ab9ee637c4b2")
-	)
-	(junction
-		(at 88.9 -26.67)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "42f9e20f-aa02-4f1b-b265-11277c582248")
 	)
 	(junction
 		(at 303.53 26.67)
@@ -8694,6 +8708,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c896179b-ee43-4e01-9866-cdf745108d2a")
+	)
+	(junction
+		(at 88.9 -26.67)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "cb703116-9bfa-45a8-85d9-439530592852")
 	)
 	(junction
 		(at 334.01 237.49)
@@ -19815,7 +19835,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "1M"
+		(property "Value" "976k"
 			(at 101.854 -21.59 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -25714,7 +25734,7 @@
 				)
 			)
 		)
-		(property "MFR" "XEL4020-222MEB"
+		(property "MFR" "XGL4020-222MEC"
 			(at 85.09 -26.67 90)
 			(hide yes)
 			(show_name no)

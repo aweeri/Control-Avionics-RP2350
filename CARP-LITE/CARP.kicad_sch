@@ -3998,281 +3998,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Jumper:SolderJumper_3_Bridged12"
-			(pin_names
-				(offset 0)
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom no)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "JP"
-				(at -2.54 -2.54 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "SolderJumper_3_Bridged12"
-				(at 0 2.794 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "3-pole Solder Jumper, pins 1+2 closed/bridged"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "Solder Jumper SPDT"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "SolderJumper*Bridged12*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "SolderJumper_3_Bridged12_0_1"
-				(polyline
-					(pts
-						(xy -2.54 0) (xy -2.032 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.016 1.016) (xy -1.016 -1.016)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(rectangle
-					(start -1.016 0.508)
-					(end -0.508 -0.508)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(arc
-					(start -1.016 -1.016)
-					(mid -2.0276 0)
-					(end -1.016 1.016)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(arc
-					(start -1.016 -1.016)
-					(mid -2.0276 0)
-					(end -1.016 1.016)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(rectangle
-					(start -0.508 1.016)
-					(end 0.508 -1.016)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 -1.27) (xy 0 -1.016)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(arc
-					(start 1.016 1.016)
-					(mid 2.0276 0)
-					(end 1.016 -1.016)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(arc
-					(start 1.016 1.016)
-					(mid 2.0276 0)
-					(end 1.016 -1.016)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy 1.016 1.016) (xy 1.016 -1.016)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 0) (xy 2.032 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "SolderJumper_3_Bridged12_1_1"
-				(pin passive line
-					(at -5.08 0 0)
-					(length 2.54)
-					(name "A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -3.81 90)
-					(length 2.54)
-					(name "C"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 5.08 0 180)
-					(length 2.54)
-					(name "B"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "LED:WS2812B"
 			(pin_names
 				(offset 0.254)
@@ -7794,9 +7519,9 @@
 		)
 		(uuid "a9b64aee-2190-4325-8b79-8921e5fd0b8d")
 	)
-	(text "Default address: 0x76\nAlternative address: 0x77"
+	(text "Default address: 0x76"
 		(exclude_from_sim no)
-		(at 37.846 221.234 0)
+		(at 40.64 219.202 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7856,13 +7581,16 @@
 		)
 		(uuid "cb0c9c34-c364-4806-a570-130ebc9324e8")
 	)
-	(text "##### TODO #####\n\nchoose and optimize footprints\n\ndouble check pyro circuits\n\nponder servo power\n"
+	(text "##### TODO #####\n\nchoose and optimize footprints:\n- main cap (move from servo out to 2S ?)\n- buzzer\n\nponder servo power\n\nkeep slaving away at the pcb"
 		(exclude_from_sim no)
-		(at 261.112 187.706 0)
+		(at 194.818 184.658 0)
 		(effects
 			(font
 				(size 1.27 1.27)
+				(thickness 0.254)
+				(bold yes)
 			)
+			(justify left)
 		)
 		(uuid "ccfc0ee6-a781-4c11-8958-fae7b5e6580b")
 	)
@@ -10549,16 +10277,6 @@
 	)
 	(wire
 		(pts
-			(xy 22.86 205.74) (xy 22.86 212.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8d6cb7ed-0515-4fff-81a9-be61e8fc3f44")
-	)
-	(wire
-		(pts
 			(xy 336.55 106.68) (xy 351.79 106.68)
 		)
 		(stroke
@@ -10659,6 +10377,16 @@
 	)
 	(wire
 		(pts
+			(xy 29.21 217.17) (xy 44.45 217.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "92b356d0-5382-49d6-8668-dd9776218c23")
+	)
+	(wire
+		(pts
 			(xy 45.72 81.28) (xy 71.12 81.28)
 		)
 		(stroke
@@ -10706,6 +10434,16 @@
 			(type default)
 		)
 		(uuid "951dd070-d4b6-4643-9176-5d7a5c42a84e")
+	)
+	(wire
+		(pts
+			(xy 29.21 222.25) (xy 29.21 217.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9528b1e6-e3fe-4cc8-818f-dc212e1d8d61")
 	)
 	(wire
 		(pts
@@ -12026,16 +11764,6 @@
 			(type default)
 		)
 		(uuid "f19ce669-9da4-414a-adef-5991a389fef3")
-	)
-	(wire
-		(pts
-			(xy 26.67 217.17) (xy 44.45 217.17)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f1c5d079-1945-4319-b3f4-50cd230c380b")
 	)
 	(wire
 		(pts
@@ -16383,89 +16111,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Jumper:SolderJumper_3_Bridged12")
-		(at 22.86 217.17 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "0a88c436-f695-401a-8c1c-dee8aaee8572")
-		(property "Reference" "JP1"
-			(at 18.796 216.916 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "SolderJumper_3_Bridged12"
-			(at 19.05 217.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Jumper:SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm_NumberLabels"
-			(at 22.86 217.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 22.86 217.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "3-pole Solder Jumper, pins 1+2 closed/bridged"
-			(at 22.86 217.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "3"
-			(uuid "4b0e28d8-9bc6-412a-a9aa-07272f966c35")
-		)
-		(pin "1"
-			(uuid "43c73dfb-1178-446c-a9c3-cd1a5046e1b3")
-		)
-		(pin "2"
-			(uuid "5ce55d08-4eeb-4ef1-8895-35cdf4e446e1")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "JP1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 67.31 267.97 90)
 		(unit 1)
@@ -16965,7 +16610,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 328.93 239.268 90)
 			(hide yes)
 			(show_name no)
@@ -18221,164 +17866,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:R_Small")
-		(at 355.6 144.78 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "25bc3f6f-0a91-43ba-9de2-f71ee348c5ad")
-		(property "Reference" "R28"
-			(at 352.298 144.018 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.016 1.016)
-				)
-			)
-		)
-		(property "Value" "0"
-			(at 355.6 144.78 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric_Pad0.72x0.64mm_HandSolder"
-			(at 355.6 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 355.6 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, small symbol"
-			(at 355.6 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "ee1b0d0d-368e-4207-9578-106dd94b9ac2")
-		)
-		(pin "1"
-			(uuid "87f95304-674d-4f53-9b2b-d17e1f7c096a")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "R28")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R_Small")
-		(at 355.6 147.32 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "28086301-d140-4424-99ce-cf6b3927e03b")
-		(property "Reference" "R29"
-			(at 352.298 146.558 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.016 1.016)
-				)
-			)
-		)
-		(property "Value" "0"
-			(at 355.6 147.32 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric_Pad0.72x0.64mm_HandSolder"
-			(at 355.6 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 355.6 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, small symbol"
-			(at 355.6 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "85c235c4-ce6c-4b25-aa7b-7659cbb47146")
-		)
-		(pin "1"
-			(uuid "7d0a061b-2fbd-4207-b59b-486ba35a63da")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "R29")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:+3V3")
 		(at 118.11 214.63 0)
 		(unit 1)
@@ -19184,7 +18671,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric_Pad0.72x0.64mm_HandSolder"
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
 			(at 355.6 142.24 0)
 			(hide yes)
 			(show_name no)
@@ -21102,85 +20589,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:R_Small")
-		(at 355.6 149.86 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5daa799c-2785-4db9-94ac-2d9a3a240d7e")
-		(property "Reference" "R30"
-			(at 352.298 149.098 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.016 1.016)
-				)
-			)
-		)
-		(property "Value" "0"
-			(at 355.6 149.86 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric_Pad0.72x0.64mm_HandSolder"
-			(at 355.6 149.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 355.6 149.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, small symbol"
-			(at 355.6 149.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "598970ab-0c1f-4ab6-913e-d22a35360170")
-		)
-		(pin "1"
-			(uuid "bff8d0e3-a9ed-4129-9799-23f89d18c773")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "R30")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:C")
 		(at 128.27 267.97 270)
 		(unit 1)
@@ -21367,7 +20775,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 341.122 205.74 90)
 			(hide yes)
 			(show_name no)
@@ -23025,7 +22433,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 334.772 185.42 90)
 			(hide yes)
 			(show_name no)
@@ -23074,7 +22482,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 22.86 222.25 0)
+		(at 29.21 222.25 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -23084,7 +22492,7 @@
 		(dnp no)
 		(uuid "7e21ef48-1a1c-4115-b8ce-5b3a373faf31")
 		(property "Reference" "#PWR035"
-			(at 22.86 228.6 0)
+			(at 29.21 228.6 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -23095,7 +22503,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 22.86 226.822 0)
+			(at 29.21 226.822 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -23105,7 +22513,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 22.86 222.25 0)
+			(at 29.21 222.25 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -23116,7 +22524,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 22.86 222.25 0)
+			(at 29.21 222.25 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -23127,7 +22535,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 22.86 222.25 0)
+			(at 29.21 222.25 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -23295,82 +22703,6 @@
 			(project "CARP"
 				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
 					(reference "#PWR047")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+3V3")
-		(at 22.86 205.74 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "7f26c799-1537-43ad-a1ff-ea19bb95f356")
-		(property "Reference" "#PWR034"
-			(at 22.86 209.55 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 23.241 201.3458 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 22.86 205.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 22.86 205.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 22.86 205.74 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "e651e871-5495-4c45-9699-d31fe31086f0")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "#PWR034")
 					(unit 1)
 				)
 			)
@@ -23643,7 +22975,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 328.93 202.438 90)
 			(hide yes)
 			(show_name no)
@@ -23797,7 +23129,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 344.17 215.392 90)
 			(hide yes)
 			(show_name no)
@@ -25880,6 +25212,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R_Small")
+		(at 355.6 144.78 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "ba9d3be2-520b-4bff-848b-45d702a519e6")
+		(property "Reference" "R28"
+			(at 352.298 144.018 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+			)
+		)
+		(property "Value" "0"
+			(at 355.6 144.78 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
+			(at 355.6 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 355.6 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 355.6 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "a3341b7c-8ba3-45d0-b443-123bec26c680")
+		)
+		(pin "1"
+			(uuid "3c5729c4-f307-4e0a-b829-426fc4caa4a8")
+		)
+		(instances
+			(project "CARP"
+				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
+					(reference "R28")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Small")
 		(at 33.02 209.55 180)
 		(unit 1)
@@ -26545,7 +25956,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 341.122 242.57 90)
 			(hide yes)
 			(show_name no)
@@ -28026,7 +27437,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 334.772 222.25 90)
 			(hide yes)
 			(show_name no)
@@ -28491,7 +27902,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 344.17 178.562 90)
 			(hide yes)
 			(show_name no)
@@ -29643,6 +29054,164 @@
 			(project "CARP"
 				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
 					(reference "#PWR021")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 355.6 149.86 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "fbc06077-ff6c-4469-b6b5-413231054c30")
+		(property "Reference" "R30"
+			(at 352.298 149.098 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+			)
+		)
+		(property "Value" "0"
+			(at 355.6 149.86 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
+			(at 355.6 149.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 355.6 149.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 355.6 149.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "417f9bf2-357a-43a1-b11e-a31dc9257c95")
+		)
+		(pin "1"
+			(uuid "e17f5884-79a7-45df-b17b-7b561c8d4b2f")
+		)
+		(instances
+			(project "CARP"
+				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
+					(reference "R30")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 355.6 147.32 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "fd4e115e-5aca-4233-a73e-f04916d3c7aa")
+		(property "Reference" "R29"
+			(at 352.298 146.558 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+			)
+		)
+		(property "Value" "0"
+			(at 355.6 147.32 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
+			(at 355.6 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 355.6 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 355.6 147.32 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "b4e550b8-df49-4bbc-8b66-723ebea3cbf9")
+		)
+		(pin "1"
+			(uuid "b0c571c1-5528-4d96-a17a-d2f8e91ef883")
+		)
+		(instances
+			(project "CARP"
+				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
+					(reference "R29")
 					(unit 1)
 				)
 			)

@@ -14256,7 +14256,7 @@
 		(uuid "04dc9066-b288-470d-814b-a64f4319c680")
 	)
 	(label "5V"
-		(at 93.98 81.28 0)
+		(at 91.44 81.28 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -17499,7 +17499,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 328.93 239.268 90)
 			(hide yes)
 			(show_name no)
@@ -18627,7 +18627,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 168.148 55.88 90)
 			(hide yes)
 			(show_name no)
@@ -18863,7 +18863,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 52.07 88.138 90)
 			(hide yes)
 			(show_name no)
@@ -21108,7 +21108,7 @@
 				)
 			)
 		)
-		(property "Value" "5.1k"
+		(property "Value" "1k"
 			(at 74.676 90.3986 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -21198,7 +21198,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 169.672 55.88 90)
 			(hide yes)
 			(show_name no)
@@ -21818,7 +21818,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 341.122 205.74 90)
 			(hide yes)
 			(show_name no)
@@ -22445,7 +22445,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "D_Schottky"
+		(property "Value" "BAS40LTH"
 			(at 85.09 256.2224 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -23557,7 +23557,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 334.772 185.42 90)
 			(hide yes)
 			(show_name no)
@@ -24019,7 +24019,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 168.148 92.71 90)
 			(hide yes)
 			(show_name no)
@@ -24099,7 +24099,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 328.93 202.438 90)
 			(hide yes)
 			(show_name no)
@@ -24346,7 +24346,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 344.17 215.392 90)
 			(hide yes)
 			(show_name no)
@@ -24506,7 +24506,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 161.29 266.192 90)
 			(hide yes)
 			(show_name no)
@@ -26574,7 +26574,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 52.07 90.678 90)
 			(hide yes)
 			(show_name no)
@@ -27365,7 +27365,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 341.122 242.57 90)
 			(hide yes)
 			(show_name no)
@@ -29083,7 +29083,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 334.772 222.25 90)
 			(hide yes)
 			(show_name no)
@@ -29315,7 +29315,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 169.672 92.71 90)
 			(hide yes)
 			(show_name no)
@@ -29469,7 +29469,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 344.17 178.562 90)
 			(hide yes)
 			(show_name no)
@@ -30249,8 +30249,8 @@
 				(justify right)
 			)
 		)
-		(property "Value" "D_Schottky"
-			(at 60.198 78.486 0)
+		(property "Value" "V2FL45"
+			(at 61.214 78.486 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -30405,7 +30405,7 @@
 				)
 			)
 		)
-		(property "Value" "D_Schottky"
+		(property "Value" "VSSAF5L45"
 			(at 64.516 73.66 90)
 			(show_name no)
 			(do_not_autoplace no)

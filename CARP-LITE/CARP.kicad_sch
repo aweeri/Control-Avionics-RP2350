@@ -19409,7 +19409,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 78.74 45.72 0)
 			(hide yes)
 			(show_name no)
@@ -19954,7 +19954,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 69.85 45.72 0)
 			(hide yes)
 			(show_name no)
@@ -22456,7 +22456,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SOD-882"
 			(at 82.55 255.27 0)
 			(hide yes)
 			(show_name no)
@@ -22652,9 +22652,8 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:10LGA_2X2X0p75_BOS"
-			(at 44.45 207.01 0)
-			(hide yes)
+		(property "Footprint" "bmp_fps:10LGA_2X2X0p75_BOS"
+			(at 56.642 199.644 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -24898,7 +24897,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 30.48 44.45 0)
 			(hide yes)
 			(show_name no)
@@ -25696,7 +25695,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
 			(at 78.74 55.88 0)
 			(hide yes)
 			(show_name no)
@@ -27090,85 +27089,6 @@
 			(project "CARP"
 				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
 					(reference "#PWR050")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+5V")
-		(at 209.55 267.97 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "beb1165c-4191-4ad2-8676-dfb45da0bb08")
-		(property "Reference" "#PWR0117"
-			(at 209.55 271.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+5V1"
-			(at 212.09 266.6999 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 209.55 267.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 209.55 267.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 209.55 267.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "0e7e0ff5-cf56-4625-829b-946fce765a41")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "#PWR0117")
 					(unit 1)
 				)
 			)
@@ -29775,7 +29695,7 @@
 				)
 			)
 		)
-		(property "Value" "10u"
+		(property "Value" "22u"
 			(at 40.64 27.686 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -30340,7 +30260,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SMF"
 			(at 64.77 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -30495,7 +30415,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Diode_SMD:D_SMA"
 			(at 71.12 73.66 0)
 			(hide yes)
 			(show_name no)

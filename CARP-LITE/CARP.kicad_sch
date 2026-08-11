@@ -14459,6 +14459,16 @@
 		)
 		(uuid "2f1ca707-066f-41d9-9e27-1847d1b38499")
 	)
+	(label "GPIO20"
+		(at 198.12 254 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "321cdd67-9123-40cb-ba0a-99d02c815de0")
+	)
 	(label "QSPI_SD2"
 		(at 96.52 171.45 180)
 		(effects
@@ -14549,16 +14559,6 @@
 		)
 		(uuid "4e3bbf3a-4a52-4e18-8c2f-1c553750609c")
 	)
-	(label "PWM2"
-		(at 198.12 254 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "50610b08-6334-4aaa-b282-45045fb119bd")
-	)
 	(label "QSPI_SD0"
 		(at 259.08 88.9 0)
 		(effects
@@ -14628,6 +14628,16 @@
 			(justify left bottom)
 		)
 		(uuid "62a4e580-3de2-44fb-861d-b5e063b2d6f1")
+	)
+	(label "GPIO23"
+		(at 198.12 274.32 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "62d8f9aa-eed7-49bb-a430-30a57168f136")
 	)
 	(label "GPIO24"
 		(at 55.88 267.97 0)
@@ -14848,16 +14858,6 @@
 			(justify left bottom)
 		)
 		(uuid "966c71aa-cb0e-4c6c-b3ee-9555a62a80b0")
-	)
-	(label "PWM1"
-		(at 198.12 274.32 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "98b1a369-4d29-4e76-ad56-ff7f56579b83")
 	)
 	(label "USB_D-"
 		(at 365.76 66.04 180)
@@ -23415,7 +23415,7 @@
 				)
 			)
 		)
-		(property "Value" "220u"
+		(property "Value" "100u"
 			(at 203.7461 265.43 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -23425,7 +23425,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_Tantalum_SMD:CP_EIA-7343-31_Kemet-D"
+		(property "Footprint" "Capacitor_Tantalum_SMD:CP_EIA-6032-28_Kemet-C"
 			(at 203.2 269.24 0)
 			(hide yes)
 			(show_name no)
@@ -23458,7 +23458,7 @@
 				)
 			)
 		)
-		(property "MFR" "TR3D227K010C0150"
+		(property "MFR" "TR3C107K010C0100"
 			(at 203.2 269.24 0)
 			(hide yes)
 			(show_name no)
@@ -30594,7 +30594,7 @@
 				)
 			)
 		)
-		(property "Value" "220u"
+		(property "Value" "100u"
 			(at 203.7461 245.11 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -30604,7 +30604,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_Tantalum_SMD:CP_EIA-7343-31_Kemet-D"
+		(property "Footprint" "Capacitor_Tantalum_SMD:CP_EIA-6032-28_Kemet-C"
 			(at 203.2 248.92 0)
 			(hide yes)
 			(show_name no)
@@ -30637,7 +30637,7 @@
 				)
 			)
 		)
-		(property "MFR" "TR3D227K010C0150"
+		(property "MFR" "TR3C107K010C0100"
 			(at 203.2 248.92 0)
 			(hide yes)
 			(show_name no)

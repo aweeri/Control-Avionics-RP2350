@@ -63,7 +63,7 @@
           "hatch_thickness": 1.0,
           "min_clearance": 0.0,
           "min_island_area": 10.0,
-          "min_thickness": 0.25,
+          "min_thickness": 0.2,
           "pad_connection": 2,
           "remove_islands": 0,
           "thermal_relief_gap": 0.5,
@@ -222,6 +222,7 @@
       "track_widths": [
         0.0,
         0.2,
+        0.25,
         0.2939,
         0.3,
         0.3058,
@@ -761,7 +762,7 @@
         "uuid": "94683f5c-9cd9-448e-be96-9792537b5cb8"
       }
     ],
-    "used_designators": "",
+    "used_designators": "#PWR117",
     "variants": []
   },
   "sheets": [

@@ -8256,19 +8256,6 @@
 		)
 		(uuid "cb0c9c34-c364-4806-a570-130ebc9324e8")
 	)
-	(text "##### TODO #####\n\nchoose and optimize footprints:\n- main cap (move from servo out to 2S ?)\n- buzzer\n\nponder servo power\n\nkeep slaving away at the pcb"
-		(exclude_from_sim no)
-		(at 194.818 184.658 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(thickness 0.254)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "ccfc0ee6-a781-4c11-8958-fae7b5e6580b")
-	)
 	(text "BMP390 HIGH SPEED"
 		(exclude_from_sim no)
 		(at 160.274 80.264 0)
@@ -23669,7 +23656,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 334.772 185.42 90)
 			(hide yes)
 			(show_name no)

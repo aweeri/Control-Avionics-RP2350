@@ -7537,7 +7537,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Inductor_SMD:L_0805_2012Metric"
+		(property "Footprint" "Inductor_SMD:L_1008_2520Metric"
 			(at 127 68.58 0)
 			(hide yes)
 			(show_name no)
@@ -7570,7 +7570,7 @@
 				)
 			)
 		)
-		(property "MFR" "IMC2220ER4R7K"
+		(property "MFR" "1008AF-472XJRC"
 			(at 127 68.58 0)
 			(hide yes)
 			(show_name no)

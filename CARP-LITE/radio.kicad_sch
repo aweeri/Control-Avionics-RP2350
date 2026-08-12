@@ -5258,7 +5258,7 @@
 				)
 			)
 		)
-		(property "Value" "1.5n"
+		(property "Value" "1.7n"
 			(at 217.17 34.29 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5338,7 +5338,7 @@
 				)
 			)
 		)
-		(property "Value" "1.1n"
+		(property "Value" "1n"
 			(at 252.73 34.29 90)
 			(show_name no)
 			(do_not_autoplace no)

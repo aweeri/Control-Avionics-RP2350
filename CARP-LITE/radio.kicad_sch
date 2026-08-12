@@ -7113,7 +7113,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "TG2520SMN-32.0000M-MCGNNM0"
+		(property "Value" "ECS-TXO-25CSMV-320-AN-TR"
 			(at 224.79 137.1599 0)
 			(show_name no)
 			(do_not_autoplace no)

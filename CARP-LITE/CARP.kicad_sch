@@ -8756,6 +8756,12 @@
 		(uuid "bf95ee43-9a3c-4199-8eb1-1c4bf1a190ef")
 	)
 	(junction
+		(at 105.41 81.28)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c0e89901-f8f1-4846-b0de-6e0c30c4d814")
+	)
+	(junction
 		(at 342.9 237.49)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -8808,12 +8814,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "d6201526-3d3c-4f11-bf6d-d2b99955f630")
-	)
-	(junction
-		(at 105.41 81.28)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "d98cc646-3ae3-4fe2-8e05-65a59b3fb6c8")
 	)
 	(junction
 		(at 284.48 43.18)
@@ -17738,7 +17738,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 240.03 125.222 90)
 			(hide yes)
 			(show_name no)
@@ -19259,7 +19259,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 250.825 83.312 90)
 			(hide yes)
 			(show_name no)
@@ -21099,6 +21099,7 @@
 	(symbol
 		(lib_id "Device:R")
 		(at 71.12 91.44 0)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -21108,7 +21109,7 @@
 		(dnp no)
 		(uuid "5538e5e7-d33e-4905-8fdb-be2dd711acd7")
 		(property "Reference" "R16"
-			(at 74.676 92.71 0)
+			(at 74.676 90.17 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21118,7 +21119,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 74.676 90.3986 0)
+			(at 74.676 92.4814 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -21127,7 +21128,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 69.342 91.44 90)
 			(hide yes)
 			(show_name no)
@@ -22143,7 +22144,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10k"
+		(property "Value" "5.1k"
 			(at 141.478 152.273 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -22154,7 +22155,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 137.922 151.13 90)
 			(hide yes)
 			(show_name no)
@@ -22753,6 +22754,7 @@
 		)
 		(property "Footprint" "bmp_fps:10LGA_2X2X0p75_BOS"
 			(at 56.642 199.644 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -25703,7 +25705,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10k"
+		(property "Value" "5.1k"
 			(at 74.168 274.193 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -25714,7 +25716,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 70.612 273.05 90)
 			(hide yes)
 			(show_name no)
@@ -27865,7 +27867,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10k"
+		(property "Value" "5.1k"
 			(at 53.848 152.273 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -27876,7 +27878,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 50.292 151.13 90)
 			(hide yes)
 			(show_name no)

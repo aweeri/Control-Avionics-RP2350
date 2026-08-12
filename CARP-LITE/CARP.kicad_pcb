@@ -481,7 +481,7 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C40"
-			(at 0 -1.16 180)
+			(at -0.066 -1.103 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "48b39727-4c80-4e39-a50a-3d7fce31ad47")
@@ -579,19 +579,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "5d9e7bb3-2a20-4c79-91eb-06947a9c57f7")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 180)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "270169e2-8d84-41c7-a08a-6cf4fe6eeacb")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.48 0 180)
@@ -2161,19 +2148,6 @@
 			(layer "F.CrtYd")
 			(uuid "f3102c7a-efde-4d8b-bd9c-9c70bb382f58")
 		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "144c64d8-642e-4c56-b0f2-88944774380d")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
-		)
 		(pad "1" thru_hole circle
 			(at 0 0)
 			(size 3.6 3.6)
@@ -2626,9 +2600,10 @@
 		(descr "Inductor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "L4"
-			(at 0 -1.17 270)
+			(at 0.841 -0.521 270)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "4b452ab0-206c-4714-8279-c31c60b0569d")
 			(effects
 				(font
@@ -2706,7 +2681,7 @@
 			(uuid "99039ae3-75a1-412a-9e5f-41c739198155")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 270)
+			(at 1.476 -0.013 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "b3d4121b-25be-4ba3-9705-10b5958aa0de")
@@ -2756,9 +2731,10 @@
 		(descr "Inductor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "L11"
-			(at 0 -1.17 270)
+			(at 1.519 -1.457 270)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "097825e2-f1d0-448b-b4dc-60cffdb49664")
 			(effects
 				(font
@@ -2836,7 +2812,7 @@
 			(uuid "50af33b8-fd26-4824-b67f-dc824d77cf3f")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 270)
+			(at 1.646 -1.584 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "6f214b86-1577-4849-806c-3e7216c0c707")
@@ -3103,19 +3079,6 @@
 			(layer "F.CrtYd")
 			(uuid "096fd59e-aad8-4394-a6f2-855d6aa1e649")
 		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "959152c3-f9f8-4932-bf4e-c35d29c24c02")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
-		)
 		(pad "1" thru_hole circle
 			(at 0 0)
 			(size 3.6 3.6)
@@ -3151,6 +3114,7 @@
 			(at 0 -1.43 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "c9014986-aa12-46bc-9675-e5c3406d80c3")
 			(effects
 				(font
@@ -3248,7 +3212,7 @@
 			(uuid "18e5ba41-5411-4bed-b5b3-10cc191cd639")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
+			(at 0 -0.865 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "947c209c-8774-4c7b-b1cd-10a4250c53b4")
@@ -3298,7 +3262,7 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C52"
-			(at 0 -1.16 90)
+			(at 0.005 1.677 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "f29f7508-ed71-4aa3-b18e-241ae3bb471c")
@@ -3396,19 +3360,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "49c215fb-e887-470b-8766-adb4f0ade10b")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "0a4323a8-d190-4667-9b91-ad67f29d1a20")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.48 0 90)
@@ -3599,9 +3550,10 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C49"
-			(at 0 -1.16 90)
+			(at 1.815 -0.448 90)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "879cbbe9-59c2-47f3-8853-53e94a2842df")
 			(effects
 				(font
@@ -3699,7 +3651,7 @@
 			(uuid "1e320bb8-26ee-4879-b2e1-b3d7a36d083f")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 90)
+			(at 2.069 0.06 90)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "22c61679-ffef-4c0c-b9d1-c73b88b0f8b6")
@@ -3749,7 +3701,7 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C48"
-			(at 0 -1.16 0)
+			(at -0.148 0.487 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "76166d7b-1006-4031-8dd8-e96f1c0b817f")
@@ -3847,19 +3799,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "3553723a-f90d-4d78-a217-f2087569dc95")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "412646eb-0f0d-41c2-b6e9-7d32b178da06")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.48 0)
@@ -6271,6 +6210,7 @@
 			(at 0 -1.17 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "d9449352-c29e-436b-9250-817c340b2a0c")
 			(effects
 				(font
@@ -6401,6 +6341,7 @@
 			(at 0 -1.17 90)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "6d850c71-e36d-490b-9e7f-c7dcee9d45d2")
 			(effects
 				(font
@@ -6478,7 +6419,7 @@
 			(uuid "c371b99b-bd4e-42f8-9f8a-91ff861cde48")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 90)
+			(at 0.639 -1.255 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "c1be8aea-3738-411d-9957-1e00177b9acd")
@@ -7386,19 +7327,6 @@
 			(layer "F.CrtYd")
 			(uuid "9c6c808d-3111-48c0-bec4-d157cec6f2d9")
 		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "c30bebe0-3abc-4c18-967d-f2451306c3cb")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
-		)
 		(pad "1" thru_hole circle
 			(at 0 0)
 			(size 3.6 3.6)
@@ -7434,6 +7362,7 @@
 			(at 0 -1.43 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "35f09d67-2a22-4263-ba36-243f2dfd268c")
 			(effects
 				(font
@@ -7531,7 +7460,7 @@
 			(uuid "b5f13fcd-ce52-406e-b43d-f10564a748fb")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
+			(at -0.092 -0.738 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "b710046c-9753-4819-988e-efacf2c0ca96")
@@ -8844,7 +8773,7 @@
 		(descr "Inductor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "FB2"
-			(at -2.7625 0 90)
+			(at -2.2275 -0.387 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "2a4a1b0d-9d09-4b1a-b85b-266481d45081")
@@ -8994,7 +8923,7 @@
 		(descr "Inductor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "L13"
-			(at 0 -1.17 270)
+			(at -0.476 -1.627 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "899ba728-d8b5-46ba-a04f-5cbe4cd3c3cd")
@@ -9072,19 +9001,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "21cc1423-b63c-44e7-a8e9-f52c0812026c")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 270)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "84a14ef3-6cfb-44be-9d8e-4405c1e55e15")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.485 0 270)
@@ -12419,6 +12335,7 @@
 			(at 0 -1.43 180)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "80332759-2c81-4aaa-a36e-3f807cdcd206")
 			(effects
 				(font
@@ -13008,6 +12925,7 @@
 			(at 0 -1.43 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "5c05d9f2-9e9e-49d3-89a3-97a7423a9ea0")
 			(effects
 				(font
@@ -14356,6 +14274,7 @@
 			(at 0 -1.16 90)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "5a7631c8-3c78-42a0-909b-b468bf10dd0e")
 			(effects
 				(font
@@ -14453,7 +14372,7 @@
 			(uuid "df4de163-4959-413b-b7e4-e03e8741b8f0")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 90)
+			(at 0 -1.255 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "894b60bb-fe3a-43dd-b39c-e86f27292b7a")
@@ -15613,9 +15532,10 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C51"
-			(at 0 -1.16 0)
+			(at 2.721 0.021 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "0e3f4b64-6f3b-474b-ba85-055cce80b7d4")
 			(effects
 				(font
@@ -15713,7 +15633,7 @@
 			(uuid "3800fa33-b1c7-478a-85ea-69d3383f29ba")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
+			(at 2.086 0.021 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "150cef9c-f890-49bd-9704-655a584b127d")
@@ -16132,19 +16052,6 @@
 			(layer "F.CrtYd")
 			(uuid "08f402db-29f4-4cba-a6bd-9f867cff8260")
 		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "fe349b45-9bcb-4d8f-a05f-8d21f97e2523")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
-		)
 		(pad "1" thru_hole circle
 			(at 0 0)
 			(size 3.6 3.6)
@@ -16329,9 +16236,10 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C46"
-			(at 0 -1.16 90)
+			(at 0 -2.482 90)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "f16b0db7-e15a-47ca-9b23-f237f3fe1deb")
 			(effects
 				(font
@@ -16429,7 +16337,7 @@
 			(uuid "4e18ec87-fc62-4216-9b51-613a5b383057")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 90)
+			(at 0.017 0.058 90)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "dc0bb8f2-0515-4d3f-8201-e57e2f0d31f0")
@@ -16692,9 +16600,10 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C41"
-			(at 0 -1.16 180)
+			(at -0.066 -1.01 180)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "57cc21dd-f647-4e2e-b9c3-c69fbd2b9727")
 			(effects
 				(font
@@ -16792,7 +16701,7 @@
 			(uuid "b00862ec-949e-4629-a4b4-f4a1cc734a76")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 180)
+			(at 0.061 1.022 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "f6f39bd3-0eac-4052-ba3d-e83ad0ad6909")
@@ -16842,10 +16751,10 @@
 		(descr "Inductor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "L9"
-			(at 0 -1.17 270)
+			(at -0.527 -1.201 0)
 			(unlocked yes)
 			(layer "F.SilkS")
-			(uuid "cba8f3f0-b9c5-4197-a98f-5df45bd0faa2")
+			(uuid "9ff63237-7a8e-4bc2-8fc2-fb86f9752459")
 			(effects
 				(font
 					(face "KiCad Font")
@@ -16857,7 +16766,7 @@
 		(property "Value" "10n"
 			(at 0 1.17 90)
 			(layer "F.Fab")
-			(uuid "b31ace38-dd2d-4da6-8cd3-ad8bcc779b23")
+			(uuid "49da8d47-cc1d-4f2a-884f-af8988a8b191")
 			(effects
 				(font
 					(size 1 1)
@@ -16869,7 +16778,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "49c16ff7-4a9e-4790-84e1-75c5a3a1f5fb")
+			(uuid "5e141257-e779-4afd-a21d-1be7c9e06b47")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16880,7 +16789,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "13acf72b-9afb-4e08-b684-6b33e0a661ce")
+			(uuid "218e9916-3b59-4439-98ca-c488a876b0a4")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16920,19 +16829,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "ffa42664-fa88-4df6-8cdf-f4ed4603f176")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 270)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "4804da9a-10cc-4d99-b3de-bdcd68f0ebdb")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.485 0 270)
@@ -17123,7 +17019,7 @@
 		(descr "Inductor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "FB1"
-			(at 2.65 0 0)
+			(at 2.617 -0.05 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "06b964aa-1d9f-46bf-89dd-7ea11163f4dc")
@@ -17273,7 +17169,7 @@
 		(descr "QFN, 32 Pin (https://www.espressif.com/sites/default/files/documentation/0a-esp8285_datasheet_en.pdf)")
 		(tags "QFN NoLead")
 		(property "Reference" "U9"
-			(at 0 -3.8 270)
+			(at 3.648 -1.985 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "135ee1c6-9eee-494e-b7a2-59b319340d0b")
@@ -19096,7 +18992,7 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C38"
-			(at 0 -1.16 90)
+			(at -0.73 1.707 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "830e14e2-566e-4006-bb80-b7efefc9d5b0")
@@ -19194,19 +19090,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "0685817a-1ac8-4783-842c-60839ebdaefb")
-		)
-		(fp_text user "${REFERENCE}"
-			(at -0.75 1.65 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "59db1485-4465-4832-af33-e2b0f36d847b")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.48 0 90)
@@ -21378,7 +21261,7 @@
 		(descr "Inductor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "L12"
-			(at 0 -1.17 180)
+			(at 2.023 -0.13 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "abfd57bb-bf8b-4dab-bf48-0a849e949d05")
@@ -21456,19 +21339,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "9a1c62bf-6167-47eb-9193-db82a9afeffd")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 180)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "47d3b4bf-d561-472d-80a4-d77d1ca85918")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.485 0 180)
@@ -22526,7 +22396,7 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C50"
-			(at -2.13 -0.05 0)
+			(at 0.222 -1.189 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "b14eb3d7-bb9a-499c-ad23-c326da9ff9a1")
@@ -22624,19 +22494,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "7a025a22-26a8-4f41-ae48-049c8e8ef709")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 180)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "a2136dc0-d5b1-4d89-8c7f-d59577f6ddd7")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.48 0 180)
@@ -22964,7 +22821,7 @@
 		(descr "Capacitor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C39"
-			(at 0 -1.16 180)
+			(at 0.043 0.006 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "618a8549-dcf1-4701-9f76-9538a22a5359")
@@ -23062,19 +22919,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "a64c223f-00af-4e95-9d4f-8bfe775b99f5")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 180)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "49017556-ffb9-450c-a28f-05255eba6a24")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.48 0 180)
@@ -24469,6 +24313,7 @@
 			(at 0 -1.17 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "b77cce18-9b73-47f9-9141-62711f64bb27")
 			(effects
 				(font
@@ -24884,6 +24729,7 @@
 			(at 0 -1.16 180)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "5b6b125b-9d96-46ea-b886-092fa57dea13")
 			(effects
 				(font
@@ -24981,7 +24827,7 @@
 			(uuid "d627b433-d8c6-485c-b79d-9b8b20ab8b99")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 180)
+			(at 1.885 -0.014 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "c37dd433-9b7f-4855-991d-9de205511867")
@@ -26254,6 +26100,7 @@
 			(at 0 -1.17 0)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "6fc6d563-f654-4ad9-b4aa-0fc3462d29be")
 			(effects
 				(font
@@ -26331,7 +26178,7 @@
 			(uuid "701ca98a-2730-4f3d-a8ed-16c384202882")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
+			(at -0.063 1.103 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "116606ee-ba40-449b-8202-a32605488c6d")
@@ -27301,7 +27148,7 @@
 			(uuid "49131a1b-b4ea-4b97-b588-d71b41c500ae")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 1.251271 -0.222015 0)
+			(at 1.246271 -0.279015 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "8d5ce07c-bc46-4798-9250-d4f5674e6a86")
@@ -28967,7 +28814,7 @@
 			(uuid "35af4629-123a-4a71-ac11-1a2b28b9ee10")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 1.728729 0.322015 0)
+			(at -1.076271 0.279015 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "ca17dc94-f5c0-4a1f-9fa4-08021fbbb9eb")
@@ -29627,7 +29474,7 @@
 		(descr "Inductor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 		(tags "inductor")
 		(property "Reference" "L10"
-			(at 0 -1.17 0)
+			(at -0.026 -1.003 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "f91d16c8-0ba3-4aac-a1ee-eafc6f8bb4e8")
@@ -29705,19 +29552,6 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "5b49605d-ad2c-47b5-8c7e-aeffd9dee77a")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.SilkS")
-			(uuid "23bf6137-84d3-45a8-9f0a-3f55a30017fc")
-			(effects
-				(font
-					(face "KiCad Font")
-					(size 0.8 0.8)
-					(thickness 0.15)
-				)
-			)
 		)
 		(pad "1" smd roundrect
 			(at -0.485 0)
@@ -31637,9 +31471,10 @@
 		(descr "Capacitor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 76, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
 		(tags "capacitor")
 		(property "Reference" "C54"
-			(at 0 -1.43 180)
+			(at -0.304 -1.269 180)
 			(unlocked yes)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "db164cb1-967c-4e23-ae14-3e61b547dd94")
 			(effects
 				(font
@@ -31737,7 +31572,7 @@
 			(uuid "be19b675-71ec-46cd-82dc-b07ae940fd45")
 		)
 		(fp_text user "${REFERENCE}"
-			(at -0.025 -0.9 180)
+			(at 0.077 0.001 0)
 			(unlocked yes)
 			(layer "F.SilkS")
 			(uuid "7604062f-973d-4d75-8622-564f8cf8dda8")
@@ -33421,9 +33256,9 @@
 		(layer "Edge.Cuts")
 		(uuid "48c0f931-ab98-4710-af42-02644ff3217e")
 	)
-	(gr_text "Aweeri\nMTalon63"
-		(at 442.341 325.882 0)
-		(layer "F.SilkS")
+	(gr_text "MTalon63\nAweeri\n"
+		(at 418.973 299.212 0)
+		(layer "F.SilkS" knockout)
 		(uuid "14d29420-37b0-4710-bda7-5f29aa2b0fc6")
 		(effects
 			(font

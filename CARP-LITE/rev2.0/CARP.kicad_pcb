@@ -33406,7 +33406,7 @@
 			(unlocked yes)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "c0104353-9d5c-48fe-8fdb-e2724433543d")
+			(uuid "e26907ff-565a-4ddb-8693-46462fb3d463")
 			(effects
 				(font
 					(face "KiCad Font")
@@ -33418,7 +33418,7 @@
 		(property "Value" "4.7u"
 			(at 0 1.16 0)
 			(layer "F.Fab")
-			(uuid "5122574d-2862-4a24-9f58-5b41a54f7ab1")
+			(uuid "a9c7d954-c8e1-43a1-bfdf-eb0a4c5f08a6")
 			(effects
 				(font
 					(size 1 1)
@@ -33430,7 +33430,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "29e83768-923e-4e0a-b323-ced8c1867831")
+			(uuid "02fc34f3-ef37-43b7-8ad0-d79923199b28")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -33442,7 +33442,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "93c37c90-6c3c-4c53-8017-8f7db8412edf")
+			(uuid "ae4bb25c-b659-4836-a62d-a94b206b92e3")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -39696,18 +39696,6 @@
 			)
 		)
 	)
-	(gr_text "CUT IF V_IN ABV 10V"
-		(at 513.6786 324.0686 0)
-		(layer "F.SilkS")
-		(uuid "23ea2a24-4911-4fd4-83a2-bef8fe47f42a")
-		(effects
-			(font
-				(size 0.5 0.5)
-				(thickness 0.1)
-				(bold yes)
-			)
-		)
-	)
 	(gr_text "X"
 		(at 425.1788 292.029 90)
 		(layer "F.SilkS")
@@ -39744,34 +39732,10 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "BT"
-		(at 468.734 343.674 0)
-		(layer "F.SilkS")
-		(uuid "cf3d503e-e0b5-4f4b-bf80-e871119c1da6")
-		(effects
-			(font
-				(size 0.8 0.8)
-				(thickness 0.15)
-			)
-			(justify left bottom)
-		)
-	)
 	(gr_text "RST"
 		(at 418.08 303.13 0)
 		(layer "F.SilkS")
 		(uuid "b792429b-bf23-4411-b72b-0ac41d9ef4b1")
-		(effects
-			(font
-				(size 0.8 0.8)
-				(thickness 0.15)
-			)
-			(justify bottom)
-		)
-	)
-	(gr_text "RST"
-		(at 475.334 343.724 0)
-		(layer "F.SilkS")
-		(uuid "55317cec-7207-4958-b3f9-22c7fd2a0388")
 		(effects
 			(font
 				(size 0.8 0.8)
@@ -39792,35 +39756,10 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "MTalon63\nAweeri\n"
-		(at 473.572 309.997 270)
-		(layer "F.SilkS" knockout)
-		(uuid "452f1169-3e98-435c-9b82-4399c3347ea2")
-		(effects
-			(font
-				(size 0.8 0.8)
-				(thickness 0.15)
-			)
-			(justify left bottom)
-		)
-	)
 	(gr_text "REV1.0"
 		(at 438.313 287.12 0)
 		(layer "F.SilkS" knockout)
 		(uuid "70a7a446-6900-4eaa-a3d2-516936e5b1e3")
-		(effects
-			(font
-				(size 0.8 1)
-				(thickness 0.2)
-				(bold yes)
-			)
-			(justify left bottom)
-		)
-	)
-	(gr_text "REV1.0"
-		(at 495.543 327.65 0)
-		(layer "F.SilkS" knockout)
-		(uuid "9d33327a-ac44-418d-b8fd-48e02023d983")
 		(effects
 			(font
 				(size 0.8 1)
@@ -39880,30 +39819,6 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "UHF"
-		(at 451.534 317.074 270)
-		(layer "F.SilkS")
-		(uuid "98404b93-e947-425c-9097-a7aa10b031f7")
-		(effects
-			(font
-				(size 1 1)
-				(thickness 0.15)
-			)
-			(justify left bottom)
-		)
-	)
-	(gr_text "2.4G"
-		(at 451.584 325.474 270)
-		(layer "F.SilkS")
-		(uuid "0004e3b1-d97c-48de-88aa-c35aaad81b0f")
-		(effects
-			(font
-				(size 1 1)
-				(thickness 0.15)
-			)
-			(justify left bottom)
-		)
-	)
 	(gr_text "2026.09"
 		(at 449.96 302.19 0)
 		(layer "F.SilkS" knockout)
@@ -39917,36 +39832,10 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "2026.09"
-		(at 507.354 343.271 0)
-		(layer "F.SilkS" knockout)
-		(uuid "0a71588f-7e49-4b40-9801-a0747f8f35d2")
-		(effects
-			(font
-				(size 1 1)
-				(thickness 0.2)
-				(bold yes)
-			)
-			(justify left bottom)
-		)
-	)
 	(gr_text "CARP-LITE"
 		(at 434.63 289.66 0)
 		(layer "F.SilkS" knockout)
 		(uuid "7256f356-8833-4b14-939c-478d355ca61e")
-		(effects
-			(font
-				(size 1.4 1.6)
-				(thickness 0.35)
-				(bold yes)
-			)
-			(justify left bottom)
-		)
-	)
-	(gr_text "CARP-LITE"
-		(at 491.86 330.19 0)
-		(layer "F.SilkS" knockout)
-		(uuid "2e591aef-dd08-4e9d-ab93-0c9464e8d1f7")
 		(effects
 			(font
 				(size 1.4 1.6)
@@ -40016,18 +39905,6 @@
 			(justify left bottom mirror)
 		)
 	)
-	(gr_text "P1 ADC "
-		(at 499.6832 328.8946 0)
-		(layer "B.SilkS")
-		(uuid "72db5447-0031-40aa-8b18-ab204a583301")
-		(effects
-			(font
-				(size 0.5 0.5)
-				(thickness 0.1)
-			)
-			(justify left bottom mirror)
-		)
-	)
 	(gr_text "P2 ADC "
 		(at 450.0732 288.5932 0)
 		(layer "B.SilkS")
@@ -40054,49 +39931,10 @@
 			(justify left bottom mirror)
 		)
 	)
-	(gr_text "P2 ADC "
-		(at 507.3032 329.1232 0)
-		(layer "B.SilkS")
-		(uuid "8ffa6176-dca6-42b4-b57a-7180c31f7aa0")
-		(effects
-			(font
-				(size 0.5 0.5)
-				(thickness 0.1)
-				(bold yes)
-			)
-			(justify left bottom mirror)
-		)
-	)
-	(gr_text "CUT TO ISOL ADC CONT. CHECK"
-		(at 508.0652 333.492 0)
-		(layer "B.SilkS")
-		(uuid "4915de16-d84f-4f2e-97a6-95ec56accdbd")
-		(effects
-			(font
-				(size 0.5 0.5)
-				(thickness 0.1)
-				(bold yes)
-			)
-			(justify left bottom mirror)
-		)
-	)
 	(gr_text "można tu cos jeszcze napisac z tyłu\n\nnie chce mi sie"
 		(at 410.9572 299.185 0)
 		(layer "B.SilkS")
 		(uuid "1a71188a-1369-48c5-bdd7-62d8afeaeed4")
-		(effects
-			(font
-				(size 0.5 0.5)
-				(thickness 0.1)
-				(bold yes)
-			)
-			(justify mirror)
-		)
-	)
-	(gr_text "można tu cos jeszcze napisac z tyłu\n\nnie chce mi sie"
-		(at 468.1872 339.715 0)
-		(layer "B.SilkS")
-		(uuid "8b9890c6-bb1c-4421-a264-ca9fb93118e9")
 		(effects
 			(font
 				(size 0.5 0.5)
@@ -40119,35 +39957,10 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "≥ 10V CUT ADC\nIF NOT EXPLOD\n\n17V MAX\nDSGN 8.4V"
-		(at 515.9138 318.0234 90)
-		(layer "B.SilkS")
-		(uuid "d0c5caee-6925-410e-8ccb-5ec511ba81dc")
-		(effects
-			(font
-				(size 0.8 0.8)
-				(thickness 0.15)
-				(bold yes)
-			)
-			(justify mirror)
-		)
-	)
 	(gr_text "Volatus in memoria."
 		(at 441.488 279.119 0)
 		(layer "B.SilkS")
 		(uuid "1a21824c-f0cb-4b40-9a80-7302e4013083")
-		(effects
-			(font
-				(size 1 1)
-				(thickness 0.15)
-			)
-			(justify left bottom mirror)
-		)
-	)
-	(gr_text "Volatus in memoria."
-		(at 498.718 319.649 0)
-		(layer "B.SilkS")
-		(uuid "1724a74b-5d01-48e5-bc9b-55d99185f028")
 		(effects
 			(font
 				(size 1 1)
@@ -41745,14 +41558,6 @@
 		(layer "F.Cu")
 		(net "+3V3")
 		(uuid "633d8d5c-5705-42b7-b725-2284c8d8b49f")
-	)
-	(segment
-		(start 421.96 276.035)
-		(end 422.600001 276.035)
-		(width 0.8)
-		(layer "F.Cu")
-		(net "+3V3")
-		(uuid "68f80cbd-08a4-474b-a8f4-097634074b6c")
 	)
 	(segment
 		(start 413.4374 291.7)

@@ -8305,6 +8305,26 @@
 		)
 		(uuid "f66d3341-144e-4b0d-b802-567b9a2ff770")
 	)
+	(text_box "change notes:\n\n- c32, c31 changed from 100n to 1n (held charge too long)"
+		(exclude_from_sim no)
+		(at 240.03 182.88 0)
+		(size 45.72 54.61)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "27dd99f4-2cf1-4ddf-b282-4ff4e2146673")
+	)
 	(junction
 		(at 57.15 88.9)
 		(diameter 0)
@@ -26734,7 +26754,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100n"
+		(property "Value" "1n"
 			(at 322.072 222.758 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -28369,7 +28389,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100n"
+		(property "Value" "1n"
 			(at 322.072 185.928 0)
 			(show_name no)
 			(do_not_autoplace no)

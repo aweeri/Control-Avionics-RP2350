@@ -1,6 +1,7 @@
 # CORE APID 0 (32 bytes)
+```cpp
 {
-    uint32_t sync_word;       // +0  (4)  APID 0 identifier (0x1ACFFC1D)
+    uint32_t sync_word;       // +0  (4)  Standard SyncWord (0x1ACFFC1D)
     uint32_t timestamp;       // +4  (4)  millis()
     uint8_t  apid;            // +8  (1)  Application Process ID (0=core)
     uint8_t  flight_state;    // +9  (1)  Current state machine stage
@@ -19,10 +20,12 @@
 
     uint8_t  _pad[2];         // +30 (2)  Padding to 32 bytes
 };
+```
 
 # GPS APID 1 (32 bytes)
+```cpp
 {
-    uint32_t sync_word;       // +0  (4)  APID 1 identifier (0x5ACFFC1D)
+    uint32_t sync_word;       // +0  (4)  Standard SyncWord (0x1ACFFC1D)
     uint32_t timestamp;       // +4  (4)  millis()
     uint8_t  apid;            // +8  (1)  Application Process ID (1=gps)
     uint32_t lat;             // +9  (4)  Latitude  * 1e7
@@ -30,6 +33,8 @@
     uint16_t gps_alt;         // +17 (2)  GPS altitude (meters)
     uint8_t  state;           // +19 (1)  GPS fix state
     uint8_t  sats;            // +20 (1)  Satellite count
-    int16_t  mx, my, mz;      // +21 (6)  Magnetometer raw
-    uint8_t  _pad[5];         // +27 (5)  Padding to 32 bytes
+    uint32_t gps_time;        // +21 (4)  Unix timestamp (seconds since epoch)
+    uint8_t  hdop;            // +25 (1)  Horizontal dilution of precision * 10
+    int16_t  mx, my, mz;      // +26 (6)  Magnetometer raw
 }
+```

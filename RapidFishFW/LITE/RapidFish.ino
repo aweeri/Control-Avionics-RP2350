@@ -75,8 +75,7 @@ const float    CHUTE_DESCENT_RATE_THRESHOLD = 5.0f; // m/s — below this indica
 
 // --- Flash Storage ---
 const uint32_t FLIGHT_DATA_FLASH_SIZE = 2 * 1024 * 1024; // 2MB allocation on secondary flash
-const uint32_t SYNC_WORD_APID0 = 0x1ACFFC1D;              // APID 0 (top 2 bits = 00)
-const uint32_t SYNC_WORD_APID1 = 0x5ACFFC1D;              // APID 1 (top 2 bits = 01)
+const uint32_t SYNC_WORD = 0x1ACFFC1D;              // 4 byte SyncWord
 
 // ============================================================================
 // [2] DATA STRUCTURES & GLOBALS
@@ -113,9 +112,9 @@ struct __attribute__((packed)) LogFrameCore {
 static_assert(sizeof(LogFrameCore) == 32, "LogFrameCore must be 32 bytes");
 
 // --- APID 1: GPS / Magneto Frame (32 bytes) ---
-// Logged at low rate (e.g. 1 Hz) — placeholder for future expansion
+// Logged at low rate (e.g. 10 Hz) during flight, if GPS and/or magnetometer are available
 struct __attribute__((packed)) LogFrameGPS {
-    uint32_t sync_word;       // +0  (4)  APID 1 identifier
+    uint32_t sync_word;       // +0  (4)  Standard SyncWord (0x1ACFFC1D)
     uint32_t timestamp;       // +4  (4)  millis()
     uint8_t  apid;            // +8  (1)  Application Process ID (1=gps)
     uint32_t lat;             // +9  (4)  Latitude  * 1e7
@@ -123,8 +122,9 @@ struct __attribute__((packed)) LogFrameGPS {
     uint16_t gps_alt;         // +17 (2)  GPS altitude (meters)
     uint8_t  state;           // +19 (1)  GPS fix state
     uint8_t  sats;            // +20 (1)  Satellite count
-    int16_t  mx, my, mz;      // +21 (6)  Magnetometer raw
-    uint8_t  _pad[5];         // +27 (5)  Padding to 32 bytes
+    uint32_t gps_time;        // +21 (4)  Unix timestamp (seconds since epoch)
+    uint8_t  hdop;            // +25 (1)  Horizontal dilution of precision * 10
+    int16_t  mx, my, mz;      // +26 (6)  Magnetometer raw
 };
 static_assert(sizeof(LogFrameGPS) == 32, "LogFrameGPS must be 32 bytes");
 
@@ -198,6 +198,7 @@ void startBuzzerPattern(BuzzerPattern p);
 // ============================================================================
 
 void setup() {
+    // USB CDC dosen't care about baudrate anyway, but 115200 is a common default for serial monitors
     Serial.begin(115200);
     
     pinMode(PYRO1_PIN, OUTPUT);
@@ -521,7 +522,7 @@ void loop1() {
         if (current_state >= STATE_ACCELERATING && current_state <= STATE_CHUTE) {
             LogFrameCore* f = &page_buffer[buffer_index].core;
             
-            f->sync_word    = SYNC_WORD_APID0;
+            f->sync_word    = SYNC_WORD;
             f->timestamp    = millis();
             f->apid         = 0;  // APID 0 = core sensor frame
             f->flight_state = (uint8_t)current_state;

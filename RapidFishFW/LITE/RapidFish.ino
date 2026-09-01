@@ -5,6 +5,7 @@
 #include "hardware/sync.h"
 #include <FastLED.h>
 #include <Adafruit_LSM6DSOX.h>
+#include "SparkFun_LSM6DSV16X.h"
 #include <Wire.h>
 #include <Adafruit_BMP3XX.h>
 #include <RadioLib.h>
@@ -129,7 +130,9 @@ union LogFrame {
 static_assert(sizeof(union LogFrame) == 32, "LogFrame union must be 32 bytes");
 
 CRGB leds[NUM_LEDS];
-Adafruit_LSM6DSOX lsm;
+Adafruit_LSM6DSOX lsm_dsox;
+SparkFun_LSM6DSV16X_SPI lsm_dsv;
+bool use_dsox = false;
 Adafruit_BMP3XX bmp;
 
 LR2021 radio = new Module(RADIO_CS_PIN, RADIO_IRQ_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN, SPI1);
@@ -229,7 +232,11 @@ void setup() {
     if (system_errors > 0) {
         current_state = STATE_ERROR;
         Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
+<<<<<<< HEAD
+        if (system_errors & 1) Serial.println("- IMU (LSM6DSOX/LSM6DSV16X) failed to initialize.");
+=======
         if (system_errors & 1) Serial.println("- IMU (LSM6DSOX) failed to initialize.");
+>>>>>>> 0c214ecdfe5b99430a2640e41b7c9b79b0bb4641
         if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize.");
         if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
         Serial.println("System halted in STATE_ERROR. Waiting for reboot.");
@@ -426,7 +433,49 @@ void setup1() {
     pinMode(LSM_CS_PIN, OUTPUT);
     digitalWrite(LSM_CS_PIN, HIGH);
     delay(10);
+    
+    // Explicitly route SPI0 to the designated pins for the IMU
+    // This prevents failures on generic RP2040/RP2350 target profiles
+    SPI.setRX(16);
+    SPI.setSCK(18);
+    SPI.setTX(19);
+    SPI.begin();
 
+<<<<<<< HEAD
+    // Toggle CS low then high to ensure the IMU switches from I2C to SPI mode
+    digitalWrite(LSM_CS_PIN, LOW);
+    delay(5);
+    digitalWrite(LSM_CS_PIN, HIGH);
+    delay(5);
+
+    if (lsm_dsox.begin_SPI(LSM_CS_PIN)) {
+        use_dsox = true;
+        lsm_dsox.setAccelDataRate(LSM6DS_RATE_1_66K_HZ);
+        lsm_dsox.setAccelRange(LSM6DS_ACCEL_RANGE_16_G);
+        lsm_dsox.setGyroDataRate(LSM6DS_RATE_1_66K_HZ);
+        lsm_dsox.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
+    } 
+    else {
+        // Manually pull CS back up in case the Adafruit library left it dangling after a failed WHOAMI check
+        digitalWrite(LSM_CS_PIN, HIGH);
+        delay(10);
+        
+        if (lsm_dsv.begin(LSM_CS_PIN)) {
+            use_dsox = false;
+            lsm_dsv.deviceReset();
+            while (!lsm_dsv.getDeviceReset()) {
+                delay(1);
+            }
+            lsm_dsv.enableBlockDataUpdate();
+            lsm_dsv.setAccelDataRate(LSM6DSV16X_ODR_AT_1920Hz);
+            lsm_dsv.setAccelFullScale(LSM6DSV16X_16g);
+            lsm_dsv.setGyroDataRate(LSM6DSV16X_ODR_AT_1920Hz);
+            lsm_dsv.setGyroFullScale(LSM6DSV16X_2000dps);
+        } 
+        else {
+            system_errors |= 1; 
+        }
+=======
     if (!lsm.begin_SPI(LSM_CS_PIN)) {
         system_errors |= 1; 
     } else {
@@ -434,6 +483,7 @@ void setup1() {
         lsm.setAccelRange(LSM6DS_ACCEL_RANGE_16_G);
         lsm.setGyroDataRate(LSM6DS_RATE_1_66K_HZ);
         lsm.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
+>>>>>>> 0c214ecdfe5b99430a2640e41b7c9b79b0bb4641
     }
 
     Wire.setSDA(BMP_SDA_PIN);
@@ -463,6 +513,60 @@ void loop1() {
          
         if (micros() - last_sample_micros > 10000) last_sample_micros = micros();
         else last_sample_micros += 1000; 
+<<<<<<< HEAD
+        
+        float ax_val = 0.0f;
+        float ay_val = 0.0f;
+        float az_val = 0.0f;
+        float gx_val = 0.0f;
+        float gy_val = 0.0f;
+        float gz_val = 0.0f;
+
+        if (use_dsox) {
+            sensors_event_t accel, gyro, temp;
+            lsm_dsox.getEvent(&accel, &gyro, &temp);
+            
+            ax_val = accel.acceleration.x; 
+            ay_val = accel.acceleration.y;
+            az_val = accel.acceleration.z;
+            
+            gx_val = gyro.gyro.x;
+            gy_val = gyro.gyro.y;
+            gz_val = gyro.gyro.z;
+        } else {
+            sfe_lsm_data_t accelData;
+            sfe_lsm_data_t gyroData;
+
+            if (lsm_dsv.checkStatus()) {
+                lsm_dsv.getAccel(&accelData);
+                lsm_dsv.getGyro(&gyroData);
+
+                ax_val = (accelData.xData / 1000.0f) * 9.81f; 
+                ay_val = (accelData.yData / 1000.0f) * 9.81f;
+                az_val = (accelData.zData / 1000.0f) * 9.81f;
+
+                gx_val = (gyroData.xData / 1000.0f) * 0.0174533f; 
+                gy_val = (gyroData.yData / 1000.0f) * 0.0174533f;
+                gz_val = (gyroData.zData / 1000.0f) * 0.0174533f;
+            }
+        }
+
+        float x_mod = IS_UPSIDE_DOWN ? 1.0f : -1.0f;
+
+        current_accel_x = (ax_val * x_mod) / 9.81f;
+        current_accel_y = ay_val / 9.81f;
+        current_accel_z = az_val / 9.81f;
+        current_gforce = sqrtf((ax_val * ax_val) +
+                               (ay_val * ay_val) +
+                               (az_val * az_val)) / 9.81f;
+        
+        current_gyro_x = gx_val * x_mod;
+        current_gyro_y = gy_val;
+        current_gyro_z = gz_val;
+        current_gyro_mag = sqrtf((gx_val * gx_val) +
+                                 (gy_val * gy_val) +
+                                 (gz_val * gz_val));
+=======
 
         sensors_event_t accel, gyro, temp;
         lsm.getEvent(&accel, &gyro, &temp);
@@ -482,6 +586,7 @@ void loop1() {
         current_gyro_mag = sqrtf((gyro.gyro.x * gyro.gyro.x) +
                                  (gyro.gyro.y * gyro.gyro.y) +
                                  (gyro.gyro.z * gyro.gyro.z));
+>>>>>>> 0c214ecdfe5b99430a2640e41b7c9b79b0bb4641
 
         static uint8_t decimator = 0;
         if (++decimator >= 20) {
@@ -525,12 +630,12 @@ void loop1() {
             f->flight_state = (uint8_t)current_state;
             f->flash_used   = (uint8_t)((current_flash_addr * 255) / FLIGHT_DATA_FLASH_SIZE);
             f->core_temp    = cached_core_temp;
-            f->ax           = (int16_t)(accel.acceleration.x * 100);
-            f->ay           = (int16_t)(accel.acceleration.y * 100);
-            f->az           = (int16_t)(accel.acceleration.z * 100);
-            f->gx           = (int16_t)(gyro.gyro.x * 1000);
-            f->gy           = (int16_t)(gyro.gyro.y * 1000);
-            f->gz           = (int16_t)(gyro.gyro.z * 1000);
+            f->ax           = (int16_t)(ax_val * 100);
+            f->ay           = (int16_t)(ay_val * 100);
+            f->az           = (int16_t)(az_val * 100);
+            f->gx           = (int16_t)(gx_val * 1000);
+            f->gy           = (int16_t)(gy_val * 1000);
+            f->gz           = (int16_t)(gz_val * 1000);
             f->altitude     = (uint16_t)(current_altitude * 2.0f);
             f->temperature  = (int8_t)bmp.temperature;
             f->bat_voltage  = current_bat_voltage;
@@ -616,6 +721,7 @@ void handleSerialCommands() {
             current_flash_addr = 0;
             Serial.println("Erase complete.");
         }
+        // THIS DUMP INTERFACES CLOSELY WITH TOOL.PY. CHANGING ANYTHING REQUIRES RE-VERIFICATION OF TOOL.PY.
         else if (cmd == "DUMP_FLASH" && !flight_active) {
             Serial.println("DUMP_START");
             uint8_t* flash_ptr = (uint8_t *)(XIP_BASE + flight_flash_offset);
@@ -625,20 +731,32 @@ void handleSerialCommands() {
             Serial.println("\nDUMP_END");
         }
         else if (cmd == "STATUS") {
-            Serial.println("\n--- SYSTEM STATUS ---");
-            Serial.printf("State: %d\n", current_state);
-            Serial.printf("Altitude: %.2f m (Max: %.2f m)\n", current_altitude, max_altitude);
-            Serial.printf("Descent Rate: %.2f m/s\n", current_descent_rate);
-            Serial.printf("Accel X: %.2f G\n", current_accel_x);
-            Serial.printf("Gyro Mag: %.2f rad/s\n", current_gyro_mag);
-            Serial.printf("Battery ADC: %u\n", current_bat_voltage);
-            Serial.printf("Pyro1 Cont: %u | Pyro2 Cont: %u\n", current_p1_voltage, current_p2_voltage);
-            Serial.printf("Pyro1 Fired: %s | Pyro2 Fired: %s\n",
-                          pyro1_fired ? "YES" : "NO", pyro2_fired ? "YES" : "NO");
-            Serial.printf("Flash Usage: %u / %u bytes (%u%%)\n",
+            const char* state_names[] = {"BOOTING", "ERROR", "ARMED", "ACCELERATING", "COAST", "RECOVERY", "CHUTE", "GROUND"};
+            float bat_v = (current_bat_voltage * 9.9f) / 255.0f;
+            float p1_v  = (current_p1_voltage * 9.9f) / 255.0f;
+            float p2_v  = (current_p2_voltage * 9.9f) / 255.0f;
+
+            Serial.println("\n=================================");
+            Serial.println("       SYSTEM STATUS REPORT      ");
+            Serial.println("=================================");
+            Serial.printf("Flight State : %s\n", state_names[current_state]);
+            Serial.printf("Uptime       : %lu ms\n", millis());
+            Serial.printf("Core Temp    : %d C\n", current_core_temp);
+            Serial.printf("Baro Temp    : %d C\n", current_baro_temp);
+            Serial.println("---------------------------------");
+            Serial.printf("Altitude     : %.2f m (Max: %.2f m)\n", current_altitude, max_altitude);
+            Serial.printf("Descent Rate : %.2f m/s\n", current_descent_rate);
+            Serial.printf("Accel Vector : X:%.2f G | Y:%.2f G | Z:%.2f G\n", current_accel_x, current_accel_y, current_accel_z);
+            Serial.printf("Gyro Mag     : %.2f rad/s\n", current_gyro_mag);
+            Serial.println("---------------------------------");
+            Serial.printf("Main Battery : %.2f V\n", bat_v);
+            Serial.printf("Pyro1 Voltage: %.2f V\n", p1_v);
+            Serial.printf("Pyro2 Voltage: %.2f V\n", p2_v);
+            Serial.println("---------------------------------");
+            Serial.printf("Flash Usage  : %u / %u bytes (%u%%)\n",
                           current_flash_addr, FLIGHT_DATA_FLASH_SIZE,
                           (current_flash_addr * 100) / FLIGHT_DATA_FLASH_SIZE);
-            Serial.println("---------------------");
+            Serial.println("=================================");
         }
         else if (cmd == "SIM_LAUNCH" && !flight_active) {
             current_state = STATE_ACCELERATING;
@@ -683,6 +801,101 @@ void handleSerialCommands() {
             digitalWrite(BUZZER_PIN, LOW);
             Serial.println("BUZZER OFF");
         }
+        else if (cmd == "BUZZER_TEST") {
+            Serial.println("BUZZER TEST EXECUTING");
+            startBuzzerPattern(BUZZER_BOOT_BEEPS);
+        }
+    }
+}
+
+// ============================================================================
+// [5b] RADIO TELEMETRY (LR2021 GFSK on SPI1, core 0)
+// ============================================================================
+
+void radioInit() {
+    if (!RADIO_ENABLED) {
+        Serial.println(F("[LR2021] Radio disabled via configuration. Skipping init."));
+        return;
+    }
+
+    SPI1.setRX(12);
+    SPI1.setSCK(14);
+    SPI1.setTX(15);
+    SPI1.begin();
+
+    radio.tcxoVoltage = 2.7;
+    radio.irqDioNum = 5;
+
+    Serial.print(F("[LR2021] Initializing ... "));
+    ConfigFSK_t config;
+    config.frequency = RADIO_FREQUENCY_MHZ;
+    int state = radio.beginGFSK(config);
+    if (state != RADIOLIB_ERR_NONE) {
+        Serial.print(F("failed, code "));
+        Serial.println(state);
+        radio_ready = false;
+        radio_error_code = state;
+        system_errors |= 4; 
+        return;
+    }
+    Serial.println(F("success!"));
+
+    radio.setFrequency(RADIO_FREQUENCY_MHZ);
+    radio.setBitRate(32.0);
+    radio.setFrequencyDeviation(16.0);
+    radio.setRxBandwidth(250.0);
+    radio.setOutputPower(10.0);
+    radio.setDataShaping(RADIOLIB_SHAPING_1_0);
+    radio.setPreambleLength(64);
+    radio.setEncoding(RADIOLIB_ENCODING_NRZ);
+
+    uint8_t syncWord[] = {0x1A, 0xCF, 0xFC, 0x1D};
+    radio.setSyncWord(syncWord, 4);
+    radio.setCRC(0);
+
+    radio_ready = true;
+    Serial.printf("[LR2021] Radio ready @ %.1f MHz\n", RADIO_FREQUENCY_MHZ);
+}
+
+void radioTransmitFrame() {
+    LogFrameCore f;
+    memset(&f, 0, sizeof(f));
+
+    f.sync_word    = SYNC_WORD_APID0;
+    f.timestamp    = millis();
+    f.apid         = 0;
+    f.flight_state = (uint8_t)current_state;
+    f.flash_used   = (uint8_t)((current_flash_addr * 255) / FLIGHT_DATA_FLASH_SIZE);
+    f.core_temp    = current_core_temp;
+    f.ax           = (int16_t)(current_accel_x * 9.81f * 100.0f);
+    f.ay           = (int16_t)(current_accel_y * 9.81f * 100.0f);
+    f.az           = (int16_t)(current_accel_z * 9.81f * 100.0f);
+    f.gx           = (int16_t)(current_gyro_x * 1000.0f);
+    f.gy           = (int16_t)(current_gyro_y * 1000.0f);
+    f.gz           = (int16_t)(current_gyro_z * 1000.0f);
+    f.altitude     = (uint16_t)(current_altitude * 2.0f);
+    f.temperature  = current_baro_temp;
+    f.bat_voltage  = current_bat_voltage;
+    f.p1_voltage   = current_p1_voltage;
+    f.p2_voltage   = current_p2_voltage;
+
+    int state = radio.transmit((uint8_t*)&f, sizeof(LogFrameCore), 100);
+    if (state != RADIOLIB_ERR_NONE) {
+        static uint32_t last_err_print = 0;
+        if (millis() - last_err_print > 1000) {
+            last_err_print = millis();
+            Serial.printf("[LR2021] TX failed, code %d\n", state);
+        }
+    }
+}
+
+void radioSetFrequency(float mhz) {
+    if (!radio_ready) return;
+    int state = radio.setFrequency(mhz);
+    if (state == RADIOLIB_ERR_NONE) {
+        Serial.printf("[LR2021] Frequency set to %.3f MHz\n", mhz);
+    } else {
+        Serial.printf("[LR2021] setFrequency failed, code %d\n", state);
     }
 }
 

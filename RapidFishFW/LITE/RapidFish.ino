@@ -232,11 +232,7 @@ void setup() {
     if (system_errors > 0) {
         current_state = STATE_ERROR;
         Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
-<<<<<<< HEAD
         if (system_errors & 1) Serial.println("- IMU (LSM6DSOX/LSM6DSV16X) failed to initialize.");
-=======
-        if (system_errors & 1) Serial.println("- IMU (LSM6DSOX) failed to initialize.");
->>>>>>> 0c214ecdfe5b99430a2640e41b7c9b79b0bb4641
         if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize.");
         if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
         Serial.println("System halted in STATE_ERROR. Waiting for reboot.");
@@ -441,7 +437,6 @@ void setup1() {
     SPI.setTX(19);
     SPI.begin();
 
-<<<<<<< HEAD
     // Toggle CS low then high to ensure the IMU switches from I2C to SPI mode
     digitalWrite(LSM_CS_PIN, LOW);
     delay(5);
@@ -475,15 +470,6 @@ void setup1() {
         else {
             system_errors |= 1; 
         }
-=======
-    if (!lsm.begin_SPI(LSM_CS_PIN)) {
-        system_errors |= 1; 
-    } else {
-        lsm.setAccelDataRate(LSM6DS_RATE_1_66K_HZ);
-        lsm.setAccelRange(LSM6DS_ACCEL_RANGE_16_G);
-        lsm.setGyroDataRate(LSM6DS_RATE_1_66K_HZ);
-        lsm.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
->>>>>>> 0c214ecdfe5b99430a2640e41b7c9b79b0bb4641
     }
 
     Wire.setSDA(BMP_SDA_PIN);
@@ -513,7 +499,6 @@ void loop1() {
          
         if (micros() - last_sample_micros > 10000) last_sample_micros = micros();
         else last_sample_micros += 1000; 
-<<<<<<< HEAD
         
         float ax_val = 0.0f;
         float ay_val = 0.0f;
@@ -566,27 +551,6 @@ void loop1() {
         current_gyro_mag = sqrtf((gx_val * gx_val) +
                                  (gy_val * gy_val) +
                                  (gz_val * gz_val));
-=======
-
-        sensors_event_t accel, gyro, temp;
-        lsm.getEvent(&accel, &gyro, &temp);
-
-        float x_mod = IS_UPSIDE_DOWN ? 1.0f : -1.0f;
-
-        current_accel_x = (accel.acceleration.x * x_mod) / 9.81f;
-        current_accel_y = accel.acceleration.y / 9.81f;
-        current_accel_z = accel.acceleration.z / 9.81f;
-        current_gforce = sqrtf((accel.acceleration.x * accel.acceleration.x) +
-                               (accel.acceleration.y * accel.acceleration.y) +
-                               (accel.acceleration.z * accel.acceleration.z)) / 9.81f;
-        
-        current_gyro_x = gyro.gyro.x * x_mod;
-        current_gyro_y = gyro.gyro.y;
-        current_gyro_z = gyro.gyro.z;
-        current_gyro_mag = sqrtf((gyro.gyro.x * gyro.gyro.x) +
-                                 (gyro.gyro.y * gyro.gyro.y) +
-                                 (gyro.gyro.z * gyro.gyro.z));
->>>>>>> 0c214ecdfe5b99430a2640e41b7c9b79b0bb4641
 
         static uint8_t decimator = 0;
         if (++decimator >= 20) {

@@ -11,14 +11,12 @@
     int16_t ax, ay, az;       // +12 (6)  Accel: (m/s²) * 100
     int16_t gx, gy, gz;       // +18 (6)  Gyro: (rad/s) * 1000
 
-    uint16_t altitude;        // +24 (2)  Baro: meters MSL * 2 (0-131070m)
-    int8_t   temperature;     // +26 (1)  Barometer temp °C
+    uint32_t pressure;        // +24 (4)  Baro: hPa pressure, convert 
+    int8_t   temperature;     // +29 (1)  Barometer temp °C
 
-    uint8_t  bat_voltage;     // +27 (1)  Battery ADC (0-255 scaled)
-    uint8_t  p1_voltage;      // +28 (1)  Pyro 1 continuity ADC
-    uint8_t  p2_voltage;      // +29 (1)  Pyro 2 continuity ADC
-
-    uint8_t  _pad[2];         // +30 (2)  Padding to 32 bytes
+    uint8_t  bat_voltage;     // +30 (1)  Battery ADC (0-255 scaled)
+    uint8_t  p1_voltage;      // +31 (1)  Pyro 1 continuity ADC
+    uint8_t  p2_voltage;      // +32 (1)  Pyro 2 continuity ADC
 };
 ```
 

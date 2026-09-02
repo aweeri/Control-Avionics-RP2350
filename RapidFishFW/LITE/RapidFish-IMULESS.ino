@@ -265,8 +265,8 @@ volatile uint32_t gps_valid_sentences = 0; // NMEA sentences that passed checksu
 volatile uint32_t gps_bad_checksum    = 0; // NMEA sentences that failed checksum
 
 // Flash memory state tracking
-uint32_t flight_flash_offset = FIRMWARE_RESERVED_SIZE; 
-uint32_t current_flash_addr = 0;
+uint32_t flight_flash_offset = FIRMWARE_RESERVED_SIZE;
+volatile uint32_t current_flash_addr = 0;
 const int FRAMES_PER_PAGE = FLASH_PAGE_SIZE / sizeof(union LogFrame); 
 union LogFrame page_buffer[8]; 
 int buffer_index = 0;
@@ -285,7 +285,9 @@ volatile float current_altitude = 0.0f;
 volatile float max_altitude = 0.0f;
 volatile float reference_pressure_hpa = 1013.25f;
 volatile uint32_t state_start_time = 0;
-volatile uint8_t system_errors = 0; 
+volatile uint8_t system_errors = 0;
+// Serializes cross-core system_errors |= via sysErrSetBits().
+static spin_lock_t* sys_err_lock = NULL;
 volatile bool core1_init_complete = false;
 volatile int radio_error_code = 0;
 
@@ -337,9 +339,9 @@ void gpsFrameFill(LogFrameGPS* f) {
     f->mx = f->my = f->mz = 0;
 }
 
-// Pending GPS frame (core 0 -> core 1 flash logger) via flag, no locks.
-volatile bool  gps_pending_flag = false;
-union LogFrame gps_pending_frame;
+// Ping-pong GPS buffer (core 0 -> core 1): slot N&1, publish gps_seq after write.
+union LogFrame    gps_pending_frame[2];
+volatile uint16_t gps_seq = 0;
 
 // CCSDS 8-bit randomizer (x^8 + x^7 + x^5 + x^3 + 1)
 // 255-byte table, repeats every 255 bytes
@@ -406,10 +408,10 @@ static bool radioTransmitRandomized(const uint8_t* frame, size_t len) {
     return true;
 }
 
-// Queue a GPS frame for the core 1 flash log (radio TX handled in loop()).
+// Queue a GPS frame for the core 1 flash log.
 void emitGpsFrame() {
-    gpsFrameFill(&gps_pending_frame.gps);
-    gps_pending_flag = true;
+    gpsFrameFill(&gps_pending_frame[gps_seq & 1].gps);
+    gps_seq++; // publish after write
 }
 
 // Cached output power; -999 sentinel => first set is always sent to the chip.
@@ -467,7 +469,7 @@ void handleSerialCommands();
 void updateBuzzer();
 void startBuzzerPattern(BuzzerPattern p);
 void radioInit();
-void radioTransmitFrame();
+bool radioTransmitFrame();
 void radioSetFrequency(float mhz);
 void radioSetPower(float dbm);
 bool radioTransmitGpsFrame();
@@ -487,7 +489,17 @@ void gpsLockWatchdog();
 // [3] CORE 0: STATE MACHINE & SYSTEM MANAGEMENT
 // ============================================================================
 
+// Atomic cross-core system_errors |= (see sys_err_lock).
+static void sysErrSetBits(uint8_t mask) {
+    uint32_t save = save_and_disable_interrupts();
+    spin_lock_unsafe_blocking(sys_err_lock);
+    system_errors |= mask;
+    spin_unlock_unsafe(sys_err_lock);
+    restore_interrupts(save);
+}
+
 void setup() {
+    sys_err_lock = spin_lock_init(0);
     Serial.begin(115200);
     
     pinMode(PYRO1_PIN, OUTPUT);
@@ -607,37 +619,35 @@ void loop() {
         radioApplyStatePower();
 
         if (current_state == STATE_ARMED) {
-            // ARMED: interleave CORE / GPS every 5 s @ 10 dBm.
+            // ARMED: interleave CORE / GPS every 5 s @ 10 dBm; advance only on send.
             if (current_time - last_radio_tx >= RADIO_ARMED_INTERVAL_MS) {
-                last_radio_tx = current_time;
-                if (beacon_is_gps) {
-                    radioTransmitGpsFrame(); // GPS slot
-                } else {
-                    radioTransmitFrame();    // CORE slot
+                bool sent = beacon_is_gps ? radioTransmitGpsFrame()
+                                          : radioTransmitFrame();
+                if (sent) {
+                    last_radio_tx = current_time;
+                    beacon_is_gps = !beacon_is_gps; // flip for next armed tick
                 }
-                beacon_is_gps = !beacon_is_gps; // flip for next armed tick
             }
         } else if (current_state >= STATE_ACCELERATING && current_state <= STATE_CHUTE) {
-            // Flight: CORE every 100 ms + GPS whenever a new fix arrives, @ 22 dBm.
-            if (current_time - last_radio_core_tx >= RADIO_TX_INTERVAL_MS) {
-                last_radio_core_tx = current_time;
-                radioTransmitFrame();
-            }
-            if (now_cnt != last_gps_tx_cnt) {
+            // Flight: CORE every 100 ms + GPS on each fresh fix, @ 22 dBm.
+            // GPS preempts CORE; advance each timer only on a real send.
+            bool gps_pending = (now_cnt != last_gps_tx_cnt);
+            if (gps_pending && !radio_tx_busy) {
                 if (radioTransmitGpsFrame()) {
                     last_gps_tx_cnt = now_cnt;
                 }
-                // else: busy/dropped; retried next pass
+            }
+            if (current_time - last_radio_core_tx >= RADIO_TX_INTERVAL_MS &&
+                !radio_tx_busy) {
+                if (radioTransmitFrame()) last_radio_core_tx = current_time;
             }
         } else if (current_state == STATE_GROUND) {
             // GROUND: CORE every 10 s + GPS every 1 s, @ 22 dBm.
             if (current_time - last_radio_core_tx >= RADIO_GROUND_CORE_INTERVAL_MS) {
-                last_radio_core_tx = current_time;
-                radioTransmitFrame();
+                if (radioTransmitFrame()) last_radio_core_tx = current_time;
             }
             if (current_time - last_gps_tx >= RADIO_GROUND_GPS_INTERVAL_MS) {
-                last_gps_tx = current_time;
-                radioTransmitGpsFrame();
+                if (radioTransmitGpsFrame()) last_gps_tx = current_time;
             }
         }
     }
@@ -686,7 +696,6 @@ void loop() {
         case STATE_RECOVERY: {
             bool p1_has_cont = (current_p1_voltage >= PYRO_CONTINUITY_THRESHOLD);
             bool p2_has_cont = (current_p2_voltage >= PYRO_CONTINUITY_THRESHOLD);
-            bool both_available = (p1_has_cont && p2_has_cont);
             bool one_available  = (p1_has_cont || p2_has_cont);
 
             if (!pyro1_fired && !pyro2_fired && one_available) {
@@ -703,14 +712,16 @@ void loop() {
                     pyro2_fired = true;
                     Serial.println("PYRO2 fired (primary deployment, P1 no continuity).");
                 }
-                state_start_time = current_time; 
+                state_start_time = current_time; // start the backup redeploy window
                 break;
             }
 
-            if ((pyro1_fired || pyro2_fired) &&
-                (current_time - state_start_time > PYRO_REDEPLOY_TIMEOUT_MS)) {
-                
-                if (both_available && !pyro2_fired) {
+            // Primary fired: stay until the redeploy window elapses.
+            if (pyro1_fired || pyro2_fired) {
+                uint32_t since_fire = current_time - state_start_time;
+                bool backup_available = (p2_has_cont && !pyro2_fired);
+
+                if (since_fire > PYRO_REDEPLOY_TIMEOUT_MS && backup_available) {
                     digitalWrite(PYRO2_PIN, HIGH);
                     pyro2_fire_start = current_time;
                     pyro2_active = true;
@@ -718,15 +729,25 @@ void loop() {
                     Serial.println("PYRO2 fired (backup deployment, no chute detected).");
                     state_start_time = current_time;
                     break;
-                } else if (!both_available && !pyro1_fired && !pyro2_fired) {
+                }
+
+                if (since_fire > PYRO_REDEPLOY_TIMEOUT_MS &&
+                    !p2_has_cont && !pyro2_fired) {
                     Serial.println("WARN: No backup pyro available, awaiting chute/ground passively.");
                 }
-            }
 
-            if (current_time - state_start_time > RECOVERY_DELAY_MS) {
-                current_state = STATE_CHUTE;
-                state_start_time = current_time;
-                Serial.println("State -> CHUTE (awaiting chute detection).");
+                if (since_fire > PYRO_REDEPLOY_TIMEOUT_MS) {
+                    current_state = STATE_CHUTE;
+                    state_start_time = current_time;
+                    Serial.println("State -> CHUTE (awaiting chute detection).");
+                }
+            } else {
+                // No pyro fired: stand by briefly, then proceed.
+                if (current_time - state_start_time > RECOVERY_DELAY_MS) {
+                    current_state = STATE_CHUTE;
+                    state_start_time = current_time;
+                    Serial.println("State -> CHUTE (awaiting chute detection).");
+                }
             }
             break;
         }
@@ -787,7 +808,7 @@ void setup1() {
     }
 
     if (!bmp_ok) {
-        system_errors |= 2;
+        sysErrSetBits(2);
     } else {
         bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
         bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
@@ -915,17 +936,25 @@ void loop1() {
 
 // Drain pending core 0 GPS frame into the flash page buffer (core 1).
 void drainGpsFrame() {
-    if (!gps_pending_flag) return;
+    static uint16_t last_drained = 0;
 
-    gps_pending_flag = false;
+    const uint16_t avail = (uint16_t)gps_seq;
+    if (avail == last_drained) return;
 
-    // Only log during a flight window, matching the core frame logging gate.
-    if (current_state < STATE_ACCELERATING || current_state > STATE_CHUTE) return;
+    if (current_state < STATE_ACCELERATING || current_state > STATE_CHUTE) {
+        last_drained = avail; // skip outside the flight window
+        return;
+    }
 
-    if (buffer_index >= FRAMES_PER_PAGE) return; // should not happen; page full
+    if (buffer_index >= FRAMES_PER_PAGE) {
+        last_drained = avail;
+        return; // should not happen; page full
+    }
 
-    memcpy(&page_buffer[buffer_index].gps, &gps_pending_frame.gps, sizeof(LogFrameGPS));
+    const uint8_t slot = (uint8_t)((avail - 1) & 1);
+    memcpy(&page_buffer[buffer_index].gps, &gps_pending_frame[slot].gps, sizeof(LogFrameGPS));
     buffer_index++;
+    last_drained = avail;
 
     if (buffer_index >= FRAMES_PER_PAGE) {
         if (current_flash_addr + FLASH_PAGE_SIZE <= FLIGHT_DATA_FLASH_SIZE) {
@@ -1142,7 +1171,7 @@ void radioInit() {
         Serial.println(state);
         radio_ready = false;
         radio_error_code = state;
-        system_errors |= 4; 
+        sysErrSetBits(4);
         return;
     }
     Serial.println(F("success!"));
@@ -1171,7 +1200,7 @@ void radioInit() {
     Serial.printf("[LR2021] Radio ready @ %.1f MHz\n", RADIO_FREQUENCY_MHZ);
 }
 
-void radioTransmitFrame() {
+bool radioTransmitFrame() {
     LogFrameCore f;
     memset(&f, 0, sizeof(f));
 
@@ -1198,7 +1227,7 @@ void radioTransmitFrame() {
     f.p2_voltage   = current_p2_voltage;
 
     // Flight-active core transmit (also the core beacon slot): randomized copy.
-    radioTransmitRandomized((const uint8_t*)&f, sizeof(LogFrameCore));
+    return radioTransmitRandomized((const uint8_t*)&f, sizeof(LogFrameCore));
 }
 
 void radioSetFrequency(float mhz) {

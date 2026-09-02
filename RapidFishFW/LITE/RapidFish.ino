@@ -4,7 +4,7 @@
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 #include <FastLED.h>
-#include <Adafruit_LSM6DSOX.h>
+#include <Adafruit_LSM6DSO32.h>
 #include "SparkFun_LSM6DSV16X.h"
 #include <Wire.h>
 #include <Adafruit_BMP3XX.h>
@@ -44,7 +44,7 @@ const float LAUNCH_G_THRESHOLD   = 2.0f;
 const float BURNOUT_G_THRESHOLD  = 0.5f; 
 const float APOGEE_DIP_METERS    = 6.0f;
 const float GROUND_G_TOLERANCE   = 0.2f;  
-const bool  IS_UPSIDE_DOWN       = false; 
+const bool  IS_UPSIDE_DOWN       = true; 
 
 // --- Timing Thresholds (Milliseconds) ---
 const uint32_t MIN_MOTOR_BURN_MS = 500;   
@@ -130,7 +130,7 @@ union LogFrame {
 static_assert(sizeof(union LogFrame) == 32, "LogFrame union must be 32 bytes");
 
 CRGB leds[NUM_LEDS];
-Adafruit_LSM6DSOX lsm_dsox;
+Adafruit_LSM6DSO32 lsm_dsox;
 SparkFun_LSM6DSV16X_SPI lsm_dsv;
 bool use_dsox = false;
 Adafruit_BMP3XX bmp;
@@ -232,7 +232,7 @@ void setup() {
     if (system_errors > 0) {
         current_state = STATE_ERROR;
         Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
-        if (system_errors & 1) Serial.println("- IMU (LSM6DSOX/LSM6DSV16X) failed to initialize.");
+        if (system_errors & 1) Serial.println("- IMU (LSM6DSO32/LSM6DSV16X) failed to initialize.");
         if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize.");
         if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
         Serial.println("System halted in STATE_ERROR. Waiting for reboot.");
@@ -446,7 +446,7 @@ void setup1() {
     if (lsm_dsox.begin_SPI(LSM_CS_PIN)) {
         use_dsox = true;
         lsm_dsox.setAccelDataRate(LSM6DS_RATE_1_66K_HZ);
-        lsm_dsox.setAccelRange(LSM6DS_ACCEL_RANGE_16_G);
+        lsm_dsox.setAccelRange(LSM6DSO32_ACCEL_RANGE_16_G);
         lsm_dsox.setGyroDataRate(LSM6DS_RATE_1_66K_HZ);
         lsm_dsox.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
     } 

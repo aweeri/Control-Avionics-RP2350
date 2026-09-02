@@ -78,7 +78,7 @@ static void __not_in_flash_func(rsFecEncode)(const uint8_t* msg,
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 #include <FastLED.h>
-#include <Adafruit_LSM6DSOX.h>
+#include <Adafruit_LSM6DSO32.h>
 #include "SparkFun_LSM6DSV16X.h"
 #include <Wire.h>
 #include <Adafruit_BMP3XX.h>
@@ -119,7 +119,7 @@ const float LAUNCH_G_THRESHOLD   = 2.0f;
 const float BURNOUT_G_THRESHOLD  = 0.5f; 
 const float APOGEE_DIP_METERS    = 6.0f;
 const float GROUND_G_TOLERANCE   = 0.2f;  
-const bool  IS_UPSIDE_DOWN       = false; 
+const bool  IS_UPSIDE_DOWN       = true;
 
 // --- Timing Thresholds (Milliseconds) ---
 const uint32_t MIN_MOTOR_BURN_MS = 500;   
@@ -231,7 +231,7 @@ union LogFrame {
 static_assert(sizeof(union LogFrame) == 32, "LogFrame union must be 32 bytes");
 
 CRGB leds[NUM_LEDS];
-Adafruit_LSM6DSOX lsm_dsox;
+Adafruit_LSM6DSO32 lsm_dsox;
 SparkFun_LSM6DSV16X_SPI lsm_dsv;
 bool use_dsox = false;
 Adafruit_BMP3XX bmp;
@@ -531,7 +531,7 @@ void setup() {
     if (system_errors > 0) {
         current_state = STATE_ERROR;
         Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
-        if (system_errors & 1) Serial.println("- IMU (LSM6DSOX/LSM6DSV16X) failed to initialize.");
+        if (system_errors & 1) Serial.println("- IMU (LSM6DSO32/LSM6DSV16X) failed to initialize.");
         if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize.");
         if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
         Serial.println("System halted in STATE_ERROR. Waiting for reboot.");
@@ -767,7 +767,51 @@ void loop() {
 void setup1() {
     delay(5000);
 
-    // IMU INITIALIZATION DISABLED - allowing normal boot sequence without IMU errors
+    pinMode(LSM_CS_PIN, OUTPUT);
+    digitalWrite(LSM_CS_PIN, HIGH);
+    delay(10);
+
+    // Explicitly route SPI0 to the designated pins for the IMU
+    // This prevents failures on generic RP2040/RP2350 target profiles
+    SPI.setRX(16);
+    SPI.setSCK(18);
+    SPI.setTX(19);
+    SPI.begin();
+
+    // Toggle CS low then high to ensure the IMU switches from I2C to SPI mode
+    digitalWrite(LSM_CS_PIN, LOW);
+    delay(5);
+    digitalWrite(LSM_CS_PIN, HIGH);
+    delay(5);
+
+    if (lsm_dsox.begin_SPI(LSM_CS_PIN)) {
+        use_dsox = true;
+        lsm_dsox.setAccelDataRate(LSM6DS_RATE_1_66K_HZ);
+        lsm_dsox.setAccelRange(LSM6DSO32_ACCEL_RANGE_16_G);
+        lsm_dsox.setGyroDataRate(LSM6DS_RATE_1_66K_HZ);
+        lsm_dsox.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
+    }
+    else {
+        // Manually pull CS back up in case the Adafruit library left it dangling after a failed WHOAMI check
+        digitalWrite(LSM_CS_PIN, HIGH);
+        delay(10);
+
+        if (lsm_dsv.begin(LSM_CS_PIN)) {
+            use_dsox = false;
+            lsm_dsv.deviceReset();
+            while (!lsm_dsv.getDeviceReset()) {
+                delay(1);
+            }
+            lsm_dsv.enableBlockDataUpdate();
+            lsm_dsv.setAccelDataRate(LSM6DSV16X_ODR_AT_1920Hz);
+            lsm_dsv.setAccelFullScale(LSM6DSV16X_16g);
+            lsm_dsv.setGyroDataRate(LSM6DSV16X_ODR_AT_1920Hz);
+            lsm_dsv.setGyroFullScale(LSM6DSV16X_2000dps);
+        }
+        else {
+            system_errors |= 1;
+        }
+    }
 
     Wire.setSDA(BMP_SDA_PIN);
     Wire.setSCL(BMP_SCL_PIN);
@@ -816,8 +860,34 @@ void loop1() {
         float gy_val = 0.0f;
         float gz_val = 0.0f;
 
-        // IMU READING DISABLED
-        // ax_val, ay_val, az_val, gx_val, gy_val, gz_val remain 0.0f
+        if (use_dsox) {
+            sensors_event_t accel, gyro, temp;
+            lsm_dsox.getEvent(&accel, &gyro, &temp);
+
+            ax_val = accel.acceleration.x;
+            ay_val = accel.acceleration.y;
+            az_val = accel.acceleration.z;
+
+            gx_val = gyro.gyro.x;
+            gy_val = gyro.gyro.y;
+            gz_val = gyro.gyro.z;
+        } else {
+            sfe_lsm_data_t accelData;
+            sfe_lsm_data_t gyroData;
+
+            if (lsm_dsv.checkStatus()) {
+                lsm_dsv.getAccel(&accelData);
+                lsm_dsv.getGyro(&gyroData);
+
+                ax_val = (accelData.xData / 1000.0f) * 9.81f;
+                ay_val = (accelData.yData / 1000.0f) * 9.81f;
+                az_val = (accelData.zData / 1000.0f) * 9.81f;
+
+                gx_val = (gyroData.xData / 1000.0f) * 0.0174533f;
+                gy_val = (gyroData.yData / 1000.0f) * 0.0174533f;
+                gz_val = (gyroData.zData / 1000.0f) * 0.0174533f;
+            }
+        }
 
         float x_mod = IS_UPSIDE_DOWN ? 1.0f : -1.0f;
 

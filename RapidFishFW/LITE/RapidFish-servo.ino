@@ -1,78 +1,5 @@
 #include <pico.h>
 #include <stdint.h>
-
-#define RS_MAX_PARITY 28   // supports up to 100% overhead on a 28-byte payload
-#define RS_MAX_MSG    64
-
-static uint8_t rs_gf_exp[512];
-static uint8_t rs_gf_log[256];
-
-static uint8_t rs_gpoly[RS_MAX_PARITY + 1];
-static uint8_t rs_mult[RS_MAX_PARITY][256];
-static int     rs_parity = 0;
-
-static uint8_t rs_gf_mul(uint8_t a, uint8_t b) {
-    if (a == 0 || b == 0) return 0;
-    return rs_gf_exp[rs_gf_log[a] + rs_gf_log[b]];
-}
-
-static void rsFecInit(void) {
-    rs_gf_log[1] = 0;
-    uint16_t x = 1;
-    for (int i = 0; i < 255; i++) {
-        rs_gf_exp[i] = x;
-        rs_gf_log[x] = i;
-        x <<= 1;
-        if (x & 0x100) x ^= 0x187;   // primitive poly x^8+x^7+x^2+x+1
-    }
-    rs_gf_exp[255] = rs_gf_exp[0];
-    for (int i = 256; i < 512; i++) rs_gf_exp[i] = rs_gf_exp[i - 255];
-}
-
-static void rsFecSetParity(int parity) {
-    if (parity < 0 || parity > RS_MAX_PARITY) parity = 0;
-    rs_parity = parity;
-
-    for (int i = 0; i <= parity; i++) rs_gpoly[i] = 0;
-    rs_gpoly[0] = 1;
-    for (int i = 0; i < parity; i++) {
-        uint8_t root = rs_gf_exp[((112 + i) * 11) % 255];
-        for (int j = i + 1; j > 0; j--) {
-            rs_gpoly[j] = rs_gpoly[j - 1] ^ rs_gf_mul(rs_gpoly[j], root);
-        }
-        rs_gpoly[0] = rs_gf_mul(rs_gpoly[0], root);
-    }
-
-    for (int j = 0; j < parity; j++) {
-        uint8_t coeff = rs_gpoly[(parity - 1) - j];
-        for (int val = 0; val < 256; val++) {
-            rs_mult[j][val] = rs_gf_mul(coeff, val);
-        }
-    }
-}
-
-static void __not_in_flash_func(rsFecEncode)(const uint8_t* msg,
-                                             uint8_t* parity, int msg_len) {
-    int P = rs_parity;
-    if (P <= 0) return;
-    for (int i = 0; i < P; i++) parity[i] = 0;
-
-    for (int i = 0; i < msg_len; i++) {
-        uint8_t fb = msg[i] ^ parity[0];
-        if (fb != 0) {
-            for (int j = 0; j < P - 1; j++) {
-                parity[j] = parity[j + 1] ^ rs_mult[j][fb];
-            }
-            parity[P - 1] = rs_mult[P - 1][fb];
-        } else {
-            for (int j = 0; j < P - 1; j++) {
-                parity[j] = parity[j + 1];
-            }
-            parity[P - 1] = 0;
-        }
-    }
-}
-
 #include "pico/stdlib.h"
 #include "hardware/flash.h"
 #include "hardware/gpio.h"
@@ -135,9 +62,9 @@ const float    CHUTE_DESCENT_RATE_THRESHOLD = 5.0f;
 // --- Flash Storage Constraints (Single 16MB Chip) ---
 const uint32_t FIRMWARE_RESERVED_SIZE = 2 * 1024 * 1024;  // 2MB safe zone
 const uint32_t FLIGHT_DATA_FLASH_SIZE = 14 * 1024 * 1024; // 14MB log capacity
-const uint32_t SYNC_WORD = 0x1ACFFC1D;              
+const uint32_t SYNC_WORD = 0x1ACFFC1D;          
 
-// --- Radio Telemetry (LR2021 GFSK on SPI1) ---
+// --- Radio Telemetry (LR2021 LoRa on SPI1) ---
 const bool RADIO_ENABLED = true; 
 #define RADIO_CS_PIN    13
 #define RADIO_IRQ_PIN   6    
@@ -151,14 +78,6 @@ const bool RADIO_ENABLED = true;
 #define RADIO_GROUND_GPS_INTERVAL_MS   1000  // GROUND: GPS every 1 s
 #define RADIO_POWER_ARMED_DBM          10.0f // ARMED output power
 #define RADIO_POWER_HIGH_DBM           22.0f // flight + GROUND output power
-#define RADIO_RS_PARITY                28    // 0/7/14/28 = no FEC / 25% / 50% / 100% overhead
-
-// --- Reed-Solomon FEC (over-the-air only; flash frames carry no parity) ---
-// RS encodes the 28-byte payload. Options:
-// 0/7/14/28 parity = no FEC / 25% / 50% / 100% overhead.
-#ifndef RADIO_RS_PARITY
-#define RADIO_RS_PARITY 7   // 25% overhead default; options 0/7/14/28
-#endif
 
 // --- GPS (ATGM336H, TinyGPSPlus on UART1) ---
 // If pins are reversed on the module, swap GPS_TX_PIN / GPS_RX_PIN below.
@@ -188,22 +107,21 @@ enum FlightState {
     STATE_GROUND
 };
 
-// --- APID 0: Core Sensor Frame (32 bytes) ---
+// --- APID 0: Core Sensor Frame (32 bytes); field scaling documented inline ---
 struct __attribute__((packed)) LogFrameCore {
-    uint32_t sync_word;       // +0  (4)
-    uint32_t timestamp;       // +4  (4)
-    uint8_t  apid;            // +8  (1)
+    uint32_t sync_word;       // +0  (4) SyncWord (0x1ACFFC1D)
+    uint32_t timestamp;       // +4  (4) millis()
+    uint8_t  apid;            // +8  (1) = 0 (core)
     uint8_t  flight_state;    // +9  (1)
-    uint8_t  flash_used;      // +10 (1)
-    int8_t   core_temp;       // +11 (1)
-    int16_t  ax, ay, az;      // +12 (6)
-    int16_t  gx, gy, gz;      // +18 (6)
-    uint16_t altitude;        // +24 (2)
-    int8_t   temperature;     // +26 (1)
-    uint8_t  bat_voltage;     // +27 (1)
-    uint8_t  p1_voltage;      // +28 (1)
-    uint8_t  p2_voltage;      // +29 (1)
-    uint8_t  _pad[2];         // +30 (2)
+    uint8_t  flash_used;      // +10 (1) 0-200 = 0-100% in 0.5% increments
+    int8_t   core_temp;       // +11 (1) RP2350 internal temp °C
+    int16_t  ax, ay, az;      // +12 (6) Accel: (m/s²) * 100
+    int16_t  gx, gy, gz;      // +18 (6) Gyro: (rad/s) * 1000
+    uint32_t pressure;        // +24 (4) Baro pressure in raw Pa (/100 for hPa)
+    int8_t   temperature;     // +28 (1) Barometer temp °C
+    uint8_t  bat_voltage;     // +29 (1) Battery ADC (0-255 scaled)
+    uint8_t  p1_voltage;      // +30 (1) Pyro 1 continuity ADC
+    uint8_t  p2_voltage;      // +31 (1) Pyro 2 continuity ADC
 };
 static_assert(sizeof(LogFrameCore) == 32, "LogFrameCore must be 32 bytes");
 
@@ -239,7 +157,7 @@ Adafruit_BMP3XX bmp;
 LR2021 radio = new Module(RADIO_CS_PIN, RADIO_IRQ_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN, SPI1);
 bool radio_ready = false;
 // Interrupt-driven TX state; radio_tx_buf must stay valid until DIO IRQ fires.
-static uint8_t radio_tx_buf[64];       // room for 32-byte frame + 28 parity
+static uint8_t radio_tx_buf[32];       // room for 32-byte frame
 static size_t  radio_tx_len = 0;       // length handed to startTransmit
 volatile bool  radio_tx_busy = false;  // a TX is in flight
 volatile bool  radio_tx_done = false;  // DIO IRQ fired for the current TX
@@ -296,8 +214,9 @@ volatile float current_descent_rate = 0.0f;
 volatile uint8_t current_bat_voltage = 0;
 volatile uint8_t current_p1_voltage = 0;
 volatile uint8_t current_p2_voltage = 0;
-volatile int8_t current_core_temp = 0;
-volatile int8_t current_baro_temp = 0;
+volatile int8_t   current_core_temp = 0;
+volatile int8_t   current_baro_temp = 0;
+volatile uint32_t current_pressure_pa = 101325; // baro raw Pa, shared to core 0
 
 // GPS snapshot from core 0 to frame builders; update_cnt written last => coherent.
 struct GpsSnapshot {
@@ -338,55 +257,18 @@ void gpsFrameFill(LogFrameGPS* f) {
 volatile bool  gps_pending_flag = false;
 union LogFrame gps_pending_frame;
 
-// CCSDS 8-bit randomizer (x^8 + x^7 + x^5 + x^3 + 1)
-// 255-byte table, repeats every 255 bytes
-static constexpr uint8_t CCSDS_RANDOMIZER[255] = {
-    0xFF, 0x48, 0x0E, 0xC0, 0x9A, 0x0D, 0x70, 0xBC, 0x8E, 0x2C, 0x93, 0xAD, 0xA7, 0xB7, 0x46, 0xCE,
-    0x5A, 0x97, 0x7D, 0xCC, 0x32, 0xA2, 0xBF, 0x3E, 0x0A, 0x10, 0xF1, 0x88, 0x94, 0xCD, 0xEA, 0xB1,
-    0xFE, 0x90, 0x1D, 0x81, 0x34, 0x1A, 0xE1, 0x79, 0x1C, 0x59, 0x27, 0x5B, 0x4F, 0x6E, 0x8D, 0x9C,
-    0xB5, 0x2E, 0xFB, 0x98, 0x65, 0x45, 0x7E, 0x7C, 0x14, 0x21, 0xE3, 0x11, 0x29, 0x9B, 0xD5, 0x63,
-    0xFD, 0x20, 0x3B, 0x02, 0x68, 0x35, 0xC2, 0xF2, 0x38, 0xB2, 0x4E, 0xB6, 0x9E, 0xDD, 0x1B, 0x39,
-    0x6A, 0x5D, 0xF7, 0x30, 0xCA, 0x8A, 0xFC, 0xF8, 0x28, 0x43, 0xC6, 0x22, 0x53, 0x37, 0xAA, 0xC7,
-    0xFA, 0x40, 0x76, 0x04, 0xD0, 0x6B, 0x85, 0xE4, 0x71, 0x64, 0x9D, 0x6D, 0x3D, 0xBA, 0x36, 0x72,
-    0xD4, 0xBB, 0xEE, 0x61, 0x95, 0x15, 0xF9, 0xF0, 0x50, 0x87, 0x8C, 0x44, 0xA6, 0x6F, 0x55, 0x8F,
-    0xF4, 0x80, 0xEC, 0x09, 0xA0, 0xD7, 0x0B, 0xC8, 0xE2, 0xC9, 0x3A, 0xDA, 0x7B, 0x74, 0x6C, 0xE5,
-    0xA9, 0x77, 0xDC, 0xC3, 0x2A, 0x2B, 0xF3, 0xE0, 0xA1, 0x0F, 0x18, 0x89, 0x4C, 0xDE, 0xAB, 0x1F,
-    0xE9, 0x01, 0xD8, 0x13, 0x41, 0xAE, 0x17, 0x91, 0xC5, 0x92, 0x75, 0xB4, 0xF6, 0xE8, 0xD9, 0xCB,
-    0x52, 0xEF, 0xB9, 0x86, 0x54, 0x57, 0xE7, 0xC1, 0x42, 0x1E, 0x31, 0x12, 0x99, 0xBD, 0x56, 0x3F,
-    0xD2, 0x03, 0xB0, 0x26, 0x83, 0x5C, 0x2F, 0x23, 0x8B, 0x24, 0xEB, 0x69, 0xED, 0xD1, 0xB3, 0x96,
-    0xA5, 0xDF, 0x73, 0x0C, 0xA8, 0xAF, 0xCF, 0x82, 0x84, 0x3C, 0x62, 0x25, 0x33, 0x7A, 0xAC, 0x7F,
-    0xA4, 0x07, 0x60, 0x4D, 0x06, 0xB8, 0x5E, 0x47, 0x16, 0x49, 0xD6, 0xD3, 0xDB, 0xA3, 0x67, 0x2D,
-    0x4B, 0xBE, 0xE6, 0x19, 0x51, 0x5F, 0x9F, 0x05, 0x08, 0x78, 0xC4, 0x4A, 0x66, 0xF5, 0x58,
-};
-
-// XOR payload [4,len) with CCSDS_RANDOMIZER[(i-4)%255]; ASM bytes 0..3 untouched.
-static void ccsdsRandomize(uint8_t* buf, size_t len) {
-    for (size_t i = 4; i < len; i++) {
-        buf[i] ^= CCSDS_RANDOMIZER[(i - 4) % 255];
-    }
-}
-
-// Decoder (e.g. tool.py) de-scrambles bytes 4..N, then uses the (28, 28+P)
-// shortened RS code to verify/correct the payload (see rsFecEncode above).
 // IRQ completion handler; finishTransmit() is deferred to loop() (SPI-safe).
 void radioTxDoneISR() {
     radio_tx_done = true;
 }
 
-// Interrupt-driven TX on a COPY (source stays raw for flash): append RS parity
-// over payload [4,32) if enabled, CCSDS-scramble [4,total), then startTransmit.
-static bool radioTransmitRandomized(const uint8_t* frame, size_t len) {
-    if (!radio_ready || radio_tx_busy || len <= 4) return false;
-    if (len > 32) len = 32;      // FEC is defined over the 28-byte payload
-    memcpy(radio_tx_buf, frame, len);
-
-    size_t total = len;
-    if (RADIO_RS_PARITY > 0 && len >= (4 + 28)) {
-        rsFecEncode(&radio_tx_buf[4], &radio_tx_buf[len], 28); // parity over payload 4..31
-        total = len + RADIO_RS_PARITY;
-    }
-    ccsdsRandomize(radio_tx_buf, total); // bytes 0..3 (ASM) preserved over the air
-    radio_tx_len = total;
+// Interrupt-driven TX on a COPY (source stays raw for flash): send the raw
+// 28-byte payload [4,32) via LoRa implicit header, then startTransmit.
+static bool radioTransmit(const uint8_t* frame, size_t len) {
+    if (!radio_ready || radio_tx_busy || len < (4 + 28)) return false;
+    // LoRa implicit header: send only the 28-byte payload [4,32), no ASM.
+    memcpy(radio_tx_buf, &frame[4], 28);
+    radio_tx_len = 28;
 
     radio_tx_busy = true;
     radio_tx_done = false;
@@ -445,7 +327,7 @@ void radioApplyStatePower() {
 bool radioTransmitGpsFrame() {
     union LogFrame g;
     gpsFrameFill(&g.gps);
-    return radioTransmitRandomized(g.bytes, sizeof(LogFrameGPS));
+    return radioTransmit(g.bytes, sizeof(LogFrameGPS));   // slices [4,32) -> 28B implicit header
 }
 
 enum BuzzerPattern {
@@ -506,16 +388,6 @@ void setup() {
     Serial.println("\n--- RapidFish Avionics (Single Flash) Initializing ---");
 
     scanForAppendAddress();
-
-    // Init RS FEC tables for RADIO_RS_PARITY (0/7/14/28 = no/25/50/100% overhead).
-    rsFecInit();
-    rsFecSetParity(RADIO_RS_PARITY);
-    if (RADIO_RS_PARITY > 0) {
-        Serial.printf("[RS] FEC enabled: parity=%d (25%%=7, 50%%=14, 100%%=28)\n",
-                      RADIO_RS_PARITY);
-    } else {
-        Serial.println("[RS] FEC disabled (raw 32-byte frames).");
-    }
 
     radioInit();
     gpsInit();
@@ -865,6 +737,7 @@ void loop1() {
             cached_core_temp = (int8_t)analogReadTemp();
             current_core_temp = cached_core_temp;
             current_baro_temp = (int8_t)bmp.temperature;
+            current_pressure_pa = (uint32_t)bmp.pressure;
             decimator = 0;
             
             if (current_state == STATE_BOOTING || current_state == STATE_ARMED) {
@@ -911,7 +784,7 @@ void loop1() {
             f->gx           = (int16_t)(gx_val * 1000);
             f->gy           = (int16_t)(gy_val * 1000);
             f->gz           = (int16_t)(gz_val * 1000);
-            f->altitude     = (uint16_t)(current_altitude * 2.0f);
+            f->pressure     = current_pressure_pa;
             f->temperature  = (int8_t)bmp.temperature;
             f->bat_voltage  = current_bat_voltage;
             f->p1_voltage   = current_p1_voltage;
@@ -1177,7 +1050,7 @@ void handleSerialCommands() {
 }
 
 // ============================================================================
-// [5b] RADIO TELEMETRY (LR2021 GFSK on SPI1, core 0)
+// [5b] RADIO TELEMETRY (LR2021 LoRa on SPI1, core 0)
 // ============================================================================
 
 void radioInit() {
@@ -1194,33 +1067,30 @@ void radioInit() {
     radio.tcxoVoltage = 2.7;
     radio.irqDioNum = 5;
 
-    Serial.print(F("[LR2021] Initializing ... "));
-    ConfigFSK_t config;
+    Serial.print(F("[LR2021] Initializing (LoRa implicit header) ... "));
+    ConfigLoRa_t config;
     config.frequency = RADIO_FREQUENCY_MHZ;
-    int state = radio.beginGFSK(config);
+    config.bandwidth = 125.0;    // 125 kHz
+    config.spreadingFactor = 6;  // SF6
+    config.codingRate = 5;       // CR4/5
+    int state = radio.begin(config);
     if (state != RADIOLIB_ERR_NONE) {
         Serial.print(F("failed, code "));
         Serial.println(state);
         radio_ready = false;
         radio_error_code = state;
-        system_errors |= 4; 
+        system_errors |= 4;
         return;
     }
     Serial.println(F("success!"));
 
     radio.setFrequency(RADIO_FREQUENCY_MHZ);
-    // TX and RX must use identical settings for decode (modulation index ~1.0).
-    radio.setBitRate(24.0);             // 24 kbit/s
-    radio.setFrequencyDeviation(12.0);  // 12 kHz -> modulation index ~1.0
-    radio.setRxBandwidth(58.6);         // nearest 27-entry LUT step above required ~48 kHz
+    radio.setBandwidth(125.0);       // 125 kHz
+    radio.setSpreadingFactor(6);     // SF6
+    radio.setCodingRate(5);          // CR4/5
+    radio.setPreambleLength(8);      // default LoRa preamble (symbols)
+    radio.implicitHeader(28);        // implicit header: fixed 28-byte payload, no ASM
     int pw_state = radio.setOutputPower(10.0);
-    radio.setDataShaping(RADIOLIB_SHAPING_1_0);
-    radio.setPreambleLength(64);
-    radio.setEncoding(RADIOLIB_ENCODING_NRZ);
-
-    uint8_t syncWord[] = {0x1A, 0xCF, 0xFC, 0x1D};
-    radio.setSyncWord(syncWord, 4);
-    radio.setCRC(0);
 
     // Adopt initial power (10 dBm) into the power cache.
     radio_current_power_dbm = (pw_state == RADIOLIB_ERR_NONE) ? 10.0f : -999.0f;
@@ -1252,14 +1122,14 @@ void radioTransmitFrame() {
     f.gx           = (int16_t)(current_gyro_x * 1000.0f);
     f.gy           = (int16_t)(current_gyro_y * 1000.0f);
     f.gz           = (int16_t)(current_gyro_z * 1000.0f);
-    f.altitude     = (uint16_t)(current_altitude * 2.0f);
+    f.pressure     = current_pressure_pa;
     f.temperature  = current_baro_temp;
     f.bat_voltage  = current_bat_voltage;
     f.p1_voltage   = current_p1_voltage;
     f.p2_voltage   = current_p2_voltage;
 
-    // Flight-active core transmit (also the core beacon slot): randomized copy.
-    radioTransmitRandomized((const uint8_t*)&f, sizeof(LogFrameCore));
+    // Flight-active core transmit (also the core beacon slot): 28B [4,32) implicit header.
+    radioTransmit((const uint8_t*)&f, sizeof(LogFrameCore));
 }
 
 void radioSetFrequency(float mhz) {

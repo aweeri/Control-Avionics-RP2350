@@ -98,6 +98,7 @@ const bool RADIO_ENABLED = true;
 
 enum FlightState {
     STATE_BOOTING,
+    STATE_DISARMED,
     STATE_ERROR,
     STATE_ARMED,
     STATE_ACCELERATING,
@@ -203,7 +204,8 @@ volatile float current_altitude = 0.0f;
 volatile float max_altitude = 0.0f;
 volatile float reference_pressure_hpa = 1013.25f;
 volatile uint32_t state_start_time = 0;
-volatile uint8_t system_errors = 0; 
+volatile uint8_t system_errors = 0;
+volatile bool force_armed = false;   // if true, skip ERROR and zero failed sensor data
 volatile bool core1_init_complete = false;
 volatile int radio_error_code = 0;
 
@@ -396,13 +398,26 @@ void setup() {
     while (!core1_init_complete) { delay(10); }
 
     if (system_errors > 0) {
-        current_state = STATE_ERROR;
-        Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
-        if (system_errors & 1) Serial.println("- IMU (LSM6DSO32/LSM6DSV16X) failed to initialize.");
-        if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize.");
-        if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
-        Serial.println("System halted in STATE_ERROR. Waiting for reboot.");
-        startBuzzerPattern(BUZZER_ERROR);
+        if (force_armed) {
+            // ARM override: skip ERROR, zero failed sensor data, go to ARMED
+            Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR (force_armed=true, zeroing failed sensors) ***");
+            if (system_errors & 1) Serial.println("- IMU (LSM6DSO32/LSM6DSV16X) failed to initialize. Data zeroed.");
+            if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize. Data zeroed.");
+            if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
+            recovery_servo_fired = false;
+            state_start_time = millis();
+            current_state = STATE_ARMED;
+            Serial.println("System Armed (force_armed).");
+            startBuzzerPattern(BUZZER_BOOT_BEEPS);
+        } else {
+            current_state = STATE_ERROR;
+            Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
+            if (system_errors & 1) Serial.println("- IMU (LSM6DSO32/LSM6DSV16X) failed to initialize.");
+            if (system_errors & 2) Serial.println("- Barometer (BMP390) failed to initialize.");
+            if (system_errors & 4) Serial.printf("- Radio (LR2021) failed to initialize. Code: %d\n", radio_error_code);
+            Serial.println("System halted in STATE_ERROR. Waiting for reboot or ARM command.");
+            startBuzzerPattern(BUZZER_ERROR);
+        }
     } else {
         recovery_servo_fired = false;
         state_start_time = millis();
@@ -431,6 +446,7 @@ void loop() {
     if (current_blink_state != last_blink_state || current_state != last_indicated_state) {
         if (current_blink_state) {
             switch(current_state) {
+                case STATE_DISARMED:     leds[0] = CRGB::Orange; break;
                 case STATE_ERROR:        leds[0] = CRGB::Red;    break;
                 case STATE_ARMED:        leds[0] = CRGB::White;  break;
                 case STATE_ACCELERATING: leds[0] = CRGB::Red;    break;
@@ -463,7 +479,9 @@ void loop() {
         // State power (cached, deferred while TX in flight); no per-loop SPI flood.
         radioApplyStatePower();
 
-        if (current_state == STATE_ARMED) {
+        if (current_state == STATE_DISARMED) {
+            // DISARMED: no radio transmissions
+        } else if (current_state == STATE_ARMED) {
             // ARMED: interleave CORE / GPS every 5 s @ 10 dBm.
             if (current_time - last_radio_tx >= RADIO_ARMED_INTERVAL_MS) {
                 last_radio_tx = current_time;
@@ -500,6 +518,10 @@ void loop() {
     }
 
     switch (current_state) {
+        case STATE_DISARMED:
+            // DISARMED: idle, no flight logic, no servo, no logging.
+            // Only serial commands and basic measurements (GPS, ADC) are active.
+            break;
         case STATE_ERROR: break;
             
         case STATE_ARMED: {
@@ -672,7 +694,8 @@ void loop1() {
     static uint32_t last_sample_micros = 0;
     static int8_t cached_core_temp = 0;
 
-    if (system_errors > 0) return;
+    // If force_armed is set, continue with zeroed data for failed sensors instead of halting.
+    if (system_errors > 0 && !force_armed) return;
 
     if (micros() - last_sample_micros >= 1000) {
          
@@ -686,32 +709,35 @@ void loop1() {
         float gy_val = 0.0f;
         float gz_val = 0.0f;
 
-        if (use_dsox) {
-            sensors_event_t accel, gyro, temp;
-            lsm_dsox.getEvent(&accel, &gyro, &temp);
+        // Guard IMU reads: if force_armed and IMU failed, keep zeroes.
+        if (!(system_errors & 1)) {
+            if (use_dsox) {
+                sensors_event_t accel, gyro, temp;
+                lsm_dsox.getEvent(&accel, &gyro, &temp);
 
-            ax_val = accel.acceleration.x;
-            ay_val = accel.acceleration.y;
-            az_val = accel.acceleration.z;
+                ax_val = accel.acceleration.x;
+                ay_val = accel.acceleration.y;
+                az_val = accel.acceleration.z;
 
-            gx_val = gyro.gyro.x;
-            gy_val = gyro.gyro.y;
-            gz_val = gyro.gyro.z;
-        } else {
-            sfe_lsm_data_t accelData;
-            sfe_lsm_data_t gyroData;
+                gx_val = gyro.gyro.x;
+                gy_val = gyro.gyro.y;
+                gz_val = gyro.gyro.z;
+            } else {
+                sfe_lsm_data_t accelData;
+                sfe_lsm_data_t gyroData;
 
-            if (lsm_dsv.checkStatus()) {
-                lsm_dsv.getAccel(&accelData);
-                lsm_dsv.getGyro(&gyroData);
+                if (lsm_dsv.checkStatus()) {
+                    lsm_dsv.getAccel(&accelData);
+                    lsm_dsv.getGyro(&gyroData);
 
-                ax_val = (accelData.xData / 1000.0f) * 9.81f;
-                ay_val = (accelData.yData / 1000.0f) * 9.81f;
-                az_val = (accelData.zData / 1000.0f) * 9.81f;
+                    ax_val = (accelData.xData / 1000.0f) * 9.81f;
+                    ay_val = (accelData.yData / 1000.0f) * 9.81f;
+                    az_val = (accelData.zData / 1000.0f) * 9.81f;
 
-                gx_val = (gyroData.xData / 1000.0f) * 0.0174533f;
-                gy_val = (gyroData.yData / 1000.0f) * 0.0174533f;
-                gz_val = (gyroData.zData / 1000.0f) * 0.0174533f;
+                    gx_val = (gyroData.xData / 1000.0f) * 0.0174533f;
+                    gy_val = (gyroData.yData / 1000.0f) * 0.0174533f;
+                    gz_val = (gyroData.zData / 1000.0f) * 0.0174533f;
+                }
             }
         }
 
@@ -733,19 +759,22 @@ void loop1() {
 
         static uint8_t decimator = 0;
         if (++decimator >= 5) { // 1000Hz loop / 5 = 200Hz polling rate
-            bmp.performReading();
+            // Guard barometer reads: if force_armed and BMP failed, keep zeroes.
+            if (!(system_errors & 2)) {
+                bmp.performReading();
+                current_baro_temp = (int8_t)bmp.temperature;
+                current_pressure_pa = (uint32_t)bmp.pressure;
+            }
             cached_core_temp = (int8_t)analogReadTemp();
             current_core_temp = cached_core_temp;
-            current_baro_temp = (int8_t)bmp.temperature;
-            current_pressure_pa = (uint32_t)bmp.pressure;
             decimator = 0;
             
             if (current_state == STATE_BOOTING || current_state == STATE_ARMED) {
-                float current_hpa = bmp.pressure / 100.0f;
+                float current_hpa = (system_errors & 2) ? reference_pressure_hpa : (bmp.pressure / 100.0f);
                 reference_pressure_hpa = (reference_pressure_hpa * 0.9f) + (current_hpa * 0.1f);
             }
 
-            float alt = bmp.readAltitude(reference_pressure_hpa);
+            float alt = (system_errors & 2) ? 0.0f : bmp.readAltitude(reference_pressure_hpa);
             if (current_altitude == 0.0f) current_altitude = alt;
             else current_altitude = (current_altitude * 0.8f) + (alt * 0.2f);
             
@@ -907,8 +936,45 @@ void handleSerialCommands() {
             }
             Serial.println("\nDUMP_END");
         }
+        else if (cmd == "DISARM") {
+            if (current_state == STATE_DISARMED) {
+                Serial.println("SYSTEM: Already DISARMED.");
+            } else {
+                current_state = STATE_DISARMED;
+                state_start_time = millis();
+                recovery_servo_fired = false;
+                recoveryServo.write(180);
+                Serial.println("SYSTEM: State -> DISARMED. All flight systems stopped. Serial commands only.");
+                startBuzzerPattern(BUZZER_IDLE);
+                digitalWrite(BUZZER_PIN, LOW);
+            }
+        }
+        else if (cmd == "ARM") {
+            if (current_state == STATE_DISARMED) {
+                // Exit DISARMED -> ARMED
+                current_state = STATE_ARMED;
+                state_start_time = millis();
+                max_altitude = 0.0f;
+                current_altitude = 0.0f;
+                recovery_servo_fired = false;
+                Serial.println("SYSTEM: State -> ARMED (exited DISARMED).");
+                startBuzzerPattern(BUZZER_BOOT_BEEPS);
+            } else if (current_state == STATE_ERROR) {
+                // Skip ERROR with force_armed: zero failed sensor data
+                force_armed = true;
+                current_state = STATE_ARMED;
+                state_start_time = millis();
+                max_altitude = 0.0f;
+                current_altitude = 0.0f;
+                recovery_servo_fired = false;
+                Serial.println("SYSTEM: State -> ARMED (force_armed, zeroing failed sensor data).");
+                startBuzzerPattern(BUZZER_BOOT_BEEPS);
+            } else {
+                Serial.println("Command ignored: Can only ARM from DISARMED or ERROR state.");
+            }
+        }
         else if (cmd == "STATUS") {
-            const char* state_names[] = {"BOOTING", "ERROR", "ARMED", "ACCELERATING", "COAST", "RECOVERY", "CHUTE", "GROUND"};
+            const char* state_names[] = {"BOOTING", "DISARMED", "ERROR", "ARMED", "ACCELERATING", "COAST", "RECOVERY", "CHUTE", "GROUND"};
             float bat_v = (current_bat_voltage * 9.9f) / 255.0f;
             float p1_v  = (current_p1_voltage * 9.9f) / 255.0f;
             float p2_v  = (current_p2_voltage * 9.9f) / 255.0f;
@@ -1032,6 +1098,8 @@ void handleSerialCommands() {
             Serial.println("WIPE_FLASH          Erase all flight data flash");
             Serial.println("DUMP_FLASH          Dump flight data via serial");
             Serial.println("STATUS              Print full system status report");
+            Serial.println("DISARM              Stop all flight ops, enter safe serial-only mode");
+            Serial.println("ARM                 Exit DISARMED or skip ERROR (zeroes failed sensor data)");
             Serial.println("SIM_LAUNCH          Simulate launch (-> ACCELERATING)");
             Serial.println("SIM_BURNOUT         Simulate burnout (-> COAST)");
             Serial.println("SIM_APOGEE          Simulate apogee (-> RECOVERY)");

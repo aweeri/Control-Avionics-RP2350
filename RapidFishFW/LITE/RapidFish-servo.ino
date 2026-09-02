@@ -85,6 +85,7 @@ static void __not_in_flash_func(rsFecEncode)(const uint8_t* msg,
 #include <RadioLib.h>
 #include <SPI.h>
 #include <TinyGPSPlus.h>
+#include <Servo.h>
 
 /*
  * RapidFish - The CARP Rocket Avionics firmware (Single Flash 16MB)
@@ -101,8 +102,7 @@ static void __not_in_flash_func(rsFecEncode)(const uint8_t* msg,
 #define NUM_LEDS 1
 #define LED_BRIGHTNESS 255
 
-#define PYRO1_PIN 21
-#define PYRO2_PIN 22
+#define SERVO1_PIN 23
 
 #define LSM_CS_PIN  17
 #define BMP_SDA_PIN 4
@@ -115,7 +115,7 @@ static void __not_in_flash_func(rsFecEncode)(const uint8_t* msg,
 #define BUZZER_PIN 24
 
 // --- Flight Physics Thresholds ---
-const float LAUNCH_G_THRESHOLD   = 2.0f; 
+const float LAUNCH_G_THRESHOLD   = 20.0f; 
 const float BURNOUT_G_THRESHOLD  = 0.5f; 
 const float APOGEE_DIP_METERS    = 6.0f;
 const float GROUND_G_TOLERANCE   = 0.2f;  
@@ -289,12 +289,9 @@ volatile uint8_t system_errors = 0;
 volatile bool core1_init_complete = false;
 volatile int radio_error_code = 0;
 
-uint32_t pyro1_fire_start = 0;
-uint32_t pyro2_fire_start = 0;
-bool pyro1_active = false;
-bool pyro2_active = false;
-bool pyro1_fired = false;   
-bool pyro2_fired = false;   
+Servo recoveryServo;
+bool recovery_servo_fired = false;
+
 volatile float current_descent_rate = 0.0f; 
 volatile uint8_t current_bat_voltage = 0;
 volatile uint8_t current_p1_voltage = 0;
@@ -490,10 +487,8 @@ void gpsLockWatchdog();
 void setup() {
     Serial.begin(115200);
     
-    pinMode(PYRO1_PIN, OUTPUT);
-    digitalWrite(PYRO1_PIN, LOW);
-    pinMode(PYRO2_PIN, OUTPUT);
-    digitalWrite(PYRO2_PIN, LOW);
+    recoveryServo.attach(SERVO1_PIN);
+    recoveryServo.write(180);
 
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
@@ -537,8 +532,7 @@ void setup() {
         Serial.println("System halted in STATE_ERROR. Waiting for reboot.");
         startBuzzerPattern(BUZZER_ERROR);
     } else {
-        pyro1_fired = false;
-        pyro2_fired = false;
+        recovery_servo_fired = false;
         state_start_time = millis();
         current_state = STATE_ARMED;
         Serial.println("System Armed.");
@@ -551,15 +545,6 @@ void loop() {
     gpsLockWatchdog();                 // core 0: hot-restart on prolonged lock loss
     handleSerialCommands();
     uint32_t current_time = millis();
-
-    if (pyro1_active && (current_time - pyro1_fire_start >= 3000)) {
-        digitalWrite(PYRO1_PIN, LOW);
-        pyro1_active = false;
-    }
-    if (pyro2_active && (current_time - pyro2_fire_start >= 3000)) {
-        digitalWrite(PYRO2_PIN, LOW);
-        pyro2_active = false;
-    }
 
     static bool last_blink_state = false;
     static FlightState last_indicated_state = STATE_BOOTING;
@@ -684,43 +669,11 @@ void loop() {
             break;
 
         case STATE_RECOVERY: {
-            bool p1_has_cont = (current_p1_voltage >= PYRO_CONTINUITY_THRESHOLD);
-            bool p2_has_cont = (current_p2_voltage >= PYRO_CONTINUITY_THRESHOLD);
-            bool both_available = (p1_has_cont && p2_has_cont);
-            bool one_available  = (p1_has_cont || p2_has_cont);
-
-            if (!pyro1_fired && !pyro2_fired && one_available) {
-                if (p1_has_cont) {
-                    digitalWrite(PYRO1_PIN, HIGH);
-                    pyro1_fire_start = current_time;
-                    pyro1_active = true;
-                    pyro1_fired = true;
-                    Serial.println("PYRO1 fired (primary deployment).");
-                } else {
-                    digitalWrite(PYRO2_PIN, HIGH);
-                    pyro2_fire_start = current_time;
-                    pyro2_active = true;
-                    pyro2_fired = true;
-                    Serial.println("PYRO2 fired (primary deployment, P1 no continuity).");
-                }
+            if (!recovery_servo_fired) {
+                recoveryServo.write(0);
+                recovery_servo_fired = true;
+                Serial.println("Recovery Servo activated (0 deg).");
                 state_start_time = current_time; 
-                break;
-            }
-
-            if ((pyro1_fired || pyro2_fired) &&
-                (current_time - state_start_time > PYRO_REDEPLOY_TIMEOUT_MS)) {
-                
-                if (both_available && !pyro2_fired) {
-                    digitalWrite(PYRO2_PIN, HIGH);
-                    pyro2_fire_start = current_time;
-                    pyro2_active = true;
-                    pyro2_fired = true;
-                    Serial.println("PYRO2 fired (backup deployment, no chute detected).");
-                    state_start_time = current_time;
-                    break;
-                } else if (!both_available && !pyro1_fired && !pyro2_fired) {
-                    Serial.println("WARN: No backup pyro available, awaiting chute/ground passively.");
-                }
             }
 
             if (current_time - state_start_time > RECOVERY_DELAY_MS) {
@@ -833,10 +786,11 @@ void setup1() {
     if (!bmp_ok) {
         system_errors |= 2;
     } else {
-        bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
-        bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
-        bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_3);
-        bmp.setOutputDataRate(BMP3_ODR_50_HZ);
+        // 200Hz requires minimal oversampling to fit within the 5ms physical conversion window
+        bmp.setTemperatureOversampling(BMP3_NO_OVERSAMPLING);
+        bmp.setPressureOversampling(BMP3_NO_OVERSAMPLING);
+        bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_DISABLE);
+        bmp.setOutputDataRate(BMP3_ODR_200_HZ);
     }
 
     core1_init_complete = true;
@@ -906,7 +860,7 @@ void loop1() {
                                  (gz_val * gz_val));
 
         static uint8_t decimator = 0;
-        if (++decimator >= 20) {
+        if (++decimator >= 5) { // 1000Hz loop / 5 = 200Hz polling rate
             bmp.performReading();
             cached_core_temp = (int8_t)analogReadTemp();
             current_core_temp = cached_core_temp;
@@ -1150,24 +1104,32 @@ void handleSerialCommands() {
             state_start_time = millis();
             Serial.println("SIMULATION: State -> RECOVERY");
         }
-        else if (cmd == "P1_FIRE") {
-            digitalWrite(PYRO1_PIN, HIGH);
-            pyro1_fire_start = millis();
-            pyro1_active = true;
-            Serial.println("PYRO1 executing 3s burn");
+        else if (cmd == "SIM_ARMED") {
+            current_state = STATE_RECOVERY;
+            state_start_time = millis();
+            Serial.println("SIMULATION: State -> RECOVERY");
         }
-        else if (cmd == "P2_FIRE") {
-            digitalWrite(PYRO2_PIN, HIGH);
-            pyro2_fire_start = millis();
-            pyro2_active = true;
-            Serial.println("PYRO2 executing 3s burn");
+        else if (cmd == "S0") {
+            if (current_state == STATE_ARMED) {
+                recoveryServo.write(0);
+                Serial.println("SERVO set to 0 deg (Manual).");
+            } else {
+                Serial.println("Command ignored: System must be ARMED to manual override servo.");
+            }
+        }
+        else if (cmd == "S180") {
+            if (current_state == STATE_ARMED) {
+                recoveryServo.write(180);
+                Serial.println("SERVO set to 180 deg (Manual).");
+            } else {
+                Serial.println("Command ignored: System must be ARMED to manual override servo.");
+            }
         }
         else if (cmd == "RESET_ARMED") {
             current_state = STATE_ARMED;
             max_altitude = 0.0f;
             current_altitude = 0.0f;
-            pyro1_fired = false;
-            pyro2_fired = false;
+            recovery_servo_fired = false;
             Serial.println("SYSTEM: State reset to ARMED");
         }
         else if (cmd == "BUZZER_ON") {

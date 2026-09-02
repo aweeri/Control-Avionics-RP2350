@@ -1144,6 +1144,35 @@ void handleSerialCommands() {
             Serial.println("BUZZER TEST EXECUTING");
             startBuzzerPattern(BUZZER_BOOT_BEEPS);
         }
+        else if (cmd == "REBOOT") {
+            Serial.println("REBOOT: System restarting...");
+            Serial.flush();
+            delay(100);
+            rp2040.reboot();
+        }
+        else if (cmd == "HELP") {
+            Serial.println("\n=================================");
+            Serial.println("     AVAILABLE COMMANDS           ");
+            Serial.println("=================================");
+            Serial.println("RADIO_FREQ <freq>  Set radio frequency (400-510 MHz)");
+            Serial.println("RADIO_TEST          Transmit a test radio frame");
+            Serial.println("WIPE_FLASH          Erase all flight data flash");
+            Serial.println("DUMP_FLASH          Dump flight data via serial");
+            Serial.println("STATUS              Print full system status report");
+            Serial.println("SIM_LAUNCH          Simulate launch (-> ACCELERATING)");
+            Serial.println("SIM_BURNOUT         Simulate burnout (-> COAST)");
+            Serial.println("SIM_APOGEE          Simulate apogee (-> RECOVERY)");
+            Serial.println("SIM_ARMED           Simulate recovery state");
+            Serial.println("S0                  Set servo to 0 degrees (ARMED only)");
+            Serial.println("S180                Set servo to 180 degrees (ARMED only)");
+            Serial.println("RESET_ARMED         Reset state machine to ARMED");
+            Serial.println("BUZZER_ON           Turn buzzer on");
+            Serial.println("BUZZER_OFF          Turn buzzer off");
+            Serial.println("BUZZER_TEST         Run buzzer test pattern");
+            Serial.println("REBOOT              Reboot the microcontroller");
+            Serial.println("HELP                Print this command list");
+            Serial.println("=================================\n");
+        }
     }
 }
 

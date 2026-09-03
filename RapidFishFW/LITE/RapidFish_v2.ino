@@ -3,9 +3,7 @@
  *  RapidFish v2 — Unified CARP Avionics Firmware (RP2350 Dual-Core)
  * =============================================================================
  *  This firmware merges servo and pyro recovery into a single clean codebase.
- *  It supports the CARP-LITE board with LR2021 LoRa radio, LSM6DSO32/LSM6DSV16X
- *  IMU, BMP390 barometer, ATGM336H GPS, WS2812B LED, piezo buzzer, and two
- *  recovery channels (each configurable as SERVO or PYRO).
+ *  It supports the CARP-LITE v1 and v2 boards.
  *
  *  Flash layout (16 MB single chip):
  *    0 – 2 MB:   Firmware / sketch (quarantined, never touched)

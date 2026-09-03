@@ -1544,8 +1544,8 @@ void radioInit() {
     Serial.println(F("success!"));
 
     radio.setFrequency(RADIO_FREQUENCY_MHZ);
-    radio.setBandwidth(125.0);
-    radio.setSpreadingFactor(6, true);
+    radio.setBandwidth(250.0);
+    radio.setSpreadingFactor(7);
     radio.setCodingRate(5);
     radio.setPreambleLength(8);
     radio.implicitHeader(28);

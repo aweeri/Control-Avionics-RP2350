@@ -143,8 +143,8 @@ const bool RADIO_ENABLED = true;                    // [USER] Set false to disab
 #define RADIO_BUSY_PIN  10                          // [FIXED] LR2021 Busy
 
 #define RADIO_FREQUENCY_MHZ 434.0f                  // [USER] Frequency in MHz (400–510)
-#define RADIO_TX_INTERVAL_MS           100          // [USER] Flight core frame interval (ms)
-#define RADIO_ARMED_INTERVAL_MS        5000         // [USER] ARMED beacon interval (ms)
+#define RADIO_TX_INTERVAL_MS           80          // [USER] Flight core frame interval (ms)
+#define RADIO_ARMED_INTERVAL_MS        1000         // [USER] ARMED beacon interval (ms)
 #define RADIO_GROUND_CORE_INTERVAL_MS 10000         // [USER] Ground core frame interval (ms)
 #define RADIO_GROUND_GPS_INTERVAL_MS   1000         // [USER] Ground GPS frame interval (ms)
 #define RADIO_POWER_ARMED_DBM          10.0f        // [USER] ARMED TX power (dBm)

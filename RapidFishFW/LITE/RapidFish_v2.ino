@@ -260,6 +260,7 @@ volatile bool beacon_is_gps = false;
 
 // Cached radio output power
 static float radio_current_power_dbm = -999.0f;
+static bool radio_power_override = false;
 
 // --- GPS ---
 TinyGPSPlus tinyGPS;
@@ -1156,10 +1157,17 @@ void handleSerialCommands() {
             Serial.println("RADIO_FREQ: out of range (400–510 MHz).");
         }
     }
+    // --- RADIO_POWER_AUTO ---
+    else if (cmd == "RADIO_POWER_AUTO") {
+        radio_power_override = false;
+        radioApplyStatePower();
+        Serial.println("RADIO_POWER_AUTO: automatic state-based power restored.");
+    }
     // --- RADIO_POWER <dBm> ---
     else if (cmd.startsWith("RADIO_POWER")) {
         float dbm = cmd.substring(11).toFloat();
         if (dbm >= -9.0f && dbm <= 22.0f) {
+            radio_power_override = true;
             radioSetPower(dbm);
         } else {
             Serial.println("RADIO_POWER: out of range (-9 to 22 dBm).");
@@ -1419,6 +1427,7 @@ void handleSerialCommands() {
         Serial.println("--- Radio ---");
         Serial.println("  RADIO_FREQ <MHz>     Set frequency (400–510)");
         Serial.println("  RADIO_POWER <dBm>    Set TX power (-9 to 22)");
+        Serial.println("  RADIO_POWER_AUTO     Restore automatic state-based power");
         Serial.println("  RADIO_TEST           Transmit a test frame");
         Serial.println();
         Serial.println("--- Data & Diagnostics ---");
@@ -1549,6 +1558,7 @@ void radioSetPower(float dbm) {
 
 void radioApplyStatePower() {
     if (!radio_ready) return;
+    if (radio_power_override) return;
     float dbm;
     if (testbench_active) {
         dbm = TESTBENCH_RADIO_POWER_DBM;

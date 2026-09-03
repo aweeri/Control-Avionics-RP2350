@@ -636,27 +636,106 @@ void loop() {
             break;
 
         case STATE_RECOVERY: {
-            // --- Deploy channel 1 (primary) ---
+            // --- Deploy channel 1 (primary) immediately ---
             if (!ch1_fired) {
                 deployChannel1();
                 ch1_fired = true;
                 state_start_time = now;
+                Serial.println("RECOVERY: Ch1 deployed, waiting for chute to open...");
                 break;
             }
 
-            // --- Check if we need backup deployment (channel 2) ---
-            if (!ch2_fired && (now - state_start_time > PYRO_REDEPLOY_TIMEOUT_MS)) {
-                deployChannel2();
-                ch2_fired = true;
-                state_start_time = now;
+            // --- Chute confirmation via cumulative good-descent timer ---
+            // Uses an integrator instead of a simple start/stop timer so that
+            // brief oscillations around the threshold don't reset all progress.
+            //   - Each loop pass with good descent:   +100 ms
+            //   - Each loop pass with bad descent:     -200 ms (decays faster than it builds)
+            //   - Clamped 0 to CHUTE_CONFIRM_MS (5000 ms)
+            //   - When integrator reaches CHUTE_CONFIRM_MS → chute confirmed
+            const uint32_t CHUTE_CONFIRM_MS = 5000;
+            static uint32_t chute_integrator_ms = 0;
+
+            bool descent_good = (current_descent_rate < CHUTE_DESCENT_RATE_THRESHOLD);
+
+            if (descent_good) {
+                if (chute_integrator_ms < CHUTE_CONFIRM_MS) {
+                    chute_integrator_ms += 100; // accumulate 100 ms per loop
+                    if (chute_integrator_ms > CHUTE_CONFIRM_MS) chute_integrator_ms = CHUTE_CONFIRM_MS;
+                }
+                if (chute_integrator_ms >= CHUTE_CONFIRM_MS) {
+                    chute_integrator_ms = 0;
+                    current_state = STATE_CHUTE;
+                    state_start_time = now;
+                    Serial.println("State -> CHUTE (chute confirmed by descent rate).");
+                }
+            } else {
+                // Decay the integrator (faster than it builds, so brief spikes reset progress)
+                if (chute_integrator_ms > 200) chute_integrator_ms -= 200;
+                else chute_integrator_ms = 0;
+            }
+
+            // --- Smart panic: time-to-ground based ---
+            // Gives the chute MIN_CHUTE_DEPLOY_TIME_MS to open before any panic.
+            // After that, uses altitude + descent rate to compute time-to-ground.
+            // If barometer has failed (system_errors & 2), falls back to a fixed
+            // panic timeout since altitude is unreliable.
+            const uint32_t MIN_CHUTE_DEPLOY_TIME_MS = 3000; // 3 s minimum for chute to inflate
+            uint32_t time_in_recovery = now - state_start_time;
+
+            // Don't even consider panic until the chute has had time to deploy
+            if (time_in_recovery < MIN_CHUTE_DEPLOY_TIME_MS) break;
+
+            // If barometer failed, use a fixed timeout instead of altitude-based
+            if (system_errors & 2) {
+                // Baro failed: altitude is 0, time-to-ground is meaningless.
+                // Use a fixed 8 s panic timeout.
+                if (time_in_recovery > 8000 && !ch2_fired) {
+                    Serial.println("RECOVERY PANIC: Baro failed, deploying backup channel 2.");
+                    deployChannel2();
+                    ch2_fired = true;
+                    state_start_time = now;
+                } else if (time_in_recovery > 8000 && ch2_fired) {
+                    Serial.println("RECOVERY PANIC: Both deployed (baro failed). Proceeding to CHUTE.");
+                    current_state = STATE_CHUTE;
+                    state_start_time = now;
+                }
                 break;
             }
 
-            // --- Proceed to CHUTE ---
-            if (now - state_start_time > RECOVERY_DELAY_MS) {
-                current_state = STATE_CHUTE;
-                state_start_time = now;
-                Serial.println("State -> CHUTE (awaiting chute detection).");
+            // Normal case: altitude-based panic
+            float dr = fabsf(current_descent_rate);
+            // Use a minimum altitude floor of 30 m for the time calculation.
+            // This prevents a momentary 0-altitude glitch from triggering panic,
+            // and also prevents panic if baro altitude hasn't settled yet.
+            float alt_for_calc = fmaxf(current_altitude, 30.0f);
+            float time_to_ground_s = alt_for_calc / fmaxf(dr, 0.1f); // avoid div-by-zero
+
+            bool should_panic = false;
+            if (time_to_ground_s < 3.0f) {
+                should_panic = true;
+                Serial.printf("RECOVERY PANIC: %.0f m at %.1f m/s (%.1f s left)! ",
+                              current_altitude, dr, time_to_ground_s);
+            } else if (time_to_ground_s < 5.0f) {
+                should_panic = true;
+                Serial.printf("RECOVERY PANIC: %.0f m at %.1f m/s (%.1f s to ground). ",
+                              current_altitude, dr, time_to_ground_s);
+            } else if (time_to_ground_s < 10.0f && time_in_recovery > 6000) {
+                should_panic = true;
+                Serial.printf("RECOVERY PANIC: %.0f m at %.1f m/s, primary may have failed. ",
+                              current_altitude, dr);
+            }
+
+            if (should_panic) {
+                if (!ch2_fired) {
+                    Serial.println("Deploying backup channel 2.");
+                    deployChannel2();
+                    ch2_fired = true;
+                    state_start_time = now;
+                } else {
+                    Serial.println("Both channels deployed. Proceeding to CHUTE.");
+                    current_state = STATE_CHUTE;
+                    state_start_time = now;
+                }
             }
             break;
         }
@@ -664,6 +743,13 @@ void loop() {
         case STATE_CHUTE: {
             const float GYRO_STILL_TOLERANCE = 0.4f;
             const float GROUND_ALTITUDE_TOLERANCE = 50.0f;
+            const uint32_t CHUTE_PANIC_TIMEOUT_MS = 30000; // 30 s in CHUTE without ground → panic
+            static uint32_t chute_entry_time = 0;
+
+            // Latch the entry time on first visit
+            if (chute_entry_time == 0) {
+                chute_entry_time = now;
+            }
 
             bool chute_deployed = (current_descent_rate < CHUTE_DESCENT_RATE_THRESHOLD);
             bool gyro_still     = (current_gyro_mag <= GYRO_STILL_TOLERANCE);
@@ -671,11 +757,26 @@ void loop() {
 
             if (chute_deployed && gyro_still && low_altitude) {
                 if (now - state_start_time > GROUND_WAIT_MS) {
+                    chute_entry_time = 0;
                     current_state = STATE_GROUND;
                     Serial.println("Flight complete (chute descent confirmed).");
                 }
             } else {
+                // Reset ground timer if conditions aren't met
                 state_start_time = now;
+
+                // Panic: if we've been in CHUTE too long without reaching ground,
+                // deploy any remaining recovery channels
+                if (now - chute_entry_time > CHUTE_PANIC_TIMEOUT_MS) {
+                    if (!ch2_fired) {
+                        Serial.println("CHUTE PANIC: Deploying backup channel 2.");
+                        deployChannel2();
+                        ch2_fired = true;
+                    }
+                    chute_entry_time = 0;
+                    current_state = STATE_GROUND;
+                    Serial.println("CHUTE PANIC: Forcing GROUND state.");
+                }
             }
             break;
         }

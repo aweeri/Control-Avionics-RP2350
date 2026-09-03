@@ -38,6 +38,7 @@
 #include "hardware/flash.h"
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
+#include "pico/critical_section.h"
 #include <FastLED.h>
 #include <Adafruit_LSM6DSO32.h>
 #include "SparkFun_LSM6DSV16X.h"
@@ -148,24 +149,25 @@ const bool RADIO_ENABLED = true;                    // [USER] Set false to disab
 #define RADIO_GROUND_GPS_INTERVAL_MS   1000         // [USER] Ground GPS frame interval (ms)
 #define RADIO_POWER_ARMED_DBM          10.0f        // [USER] ARMED TX power (dBm)
 #define RADIO_POWER_HIGH_DBM           22.0f        // [USER] Flight + ground TX power (dBm)
-#define TESTBENCH_RADIO_POWER_DBM      2.0f         // [USER] Testbench TX power (dBm)
+#define TESTBENCH_RADIO_POWER_DBM      3.0f         // [USER] Testbench TX power (dBm)
 
 // ---------------------------------------------------------------------------
-// 1i. GPS Configuration — [USER]
+// 1i. GPS Configuration — [FIXED]
 // ---------------------------------------------------------------------------
-#define GPS_TX_PIN 8                                // [USER] GPS module TX (to RP2350 RX)
-#define GPS_RX_PIN 9                                // [USER] GPS module RX (to RP2350 TX)
+#define GPS_TX_PIN 8                                // [FIXED] GPS module TX (to RP2350 RX)
+#define GPS_RX_PIN 9                                // [FIXED] GPS module RX (to RP2350 TX)
 #define GPS_BAUD   115200                           // [FIXED] ATGM336H baud rate
 
-#define GPS_LOCK_LOSS_TIMEOUT_MS 30000              // [USER] No-fix timeout before restart
-#define GPS_WATCHDOG_COOLDOWN_MS 60000              // [USER] Min interval between restarts
+#define GPS_LOCK_LOSS_TIMEOUT_MS 30000              // [FIXED] No-fix timeout before restart
+#define GPS_WATCHDOG_COOLDOWN_MS 60000              // [FIXED] Min interval between restarts
+#define GPS_FIX_FRESH_MS 10000                      // [FIXED] Max age of fix before considered stale and doing hot restart
 
 // ---------------------------------------------------------------------------
 // 1j. Flash Storage — [FIXED] Do not change unless you know the flash layout
 // ---------------------------------------------------------------------------
-const uint32_t FIRMWARE_RESERVED_SIZE = 2 * 1024 * 1024;  // 2 MB safe zone
-const uint32_t FLIGHT_DATA_FLASH_SIZE = 14 * 1024 * 1024; // 14 MB log capacity
-const uint32_t SYNC_WORD = 0x1ACFFC1D;
+const uint32_t FIRMWARE_RESERVED_SIZE = 2 * 1024 * 1024;  // [FIXED] 2 MB safe zone
+const uint32_t FLIGHT_DATA_FLASH_SIZE = 14 * 1024 * 1024; // [FIXED] 14 MB log capacity
+const uint32_t SYNC_WORD = 0x1ACFFC1D; // [INTERNAL] Sync word for log frames (32-bit)
 
 // =============================================================================
 // [2] INTERNAL DEFINITIONS — [FIXED] Do not modify below this line
@@ -295,6 +297,7 @@ volatile float max_altitude       = 0.0f;
 volatile float reference_pressure_hpa = 1013.25f;
 volatile uint32_t state_start_time = 0;
 volatile uint8_t system_errors = 0;
+critical_section_t system_errors_lock;
 volatile bool force_armed = false;
 volatile bool core1_init_complete = false;
 volatile int radio_error_code = 0;
@@ -342,6 +345,9 @@ static int gps_last_good_month = 0;
 static int gps_last_good_day   = 0;
 
 // Pending GPS frame (core 0 → core 1)
+// Guarded by gps_mailbox_lock so the producer's write and the consumer's
+// copy+clear are mutually exclusive (no torn read/write window).
+critical_section_t gps_mailbox_lock;
 volatile bool  gps_pending_flag = false;
 union LogFrame gps_pending_frame;
 
@@ -370,6 +376,8 @@ void radioTransmitFrame();
 void radioSetFrequency(float mhz);
 void radioSetPower(float dbm);
 bool radioTransmitGpsFrame();
+static bool radioTransmit(const uint8_t* frame, size_t len);
+void radioApplyStatePower();
 void radioTxDoneISR();
 void gpsInit();
 void handleGps();
@@ -379,6 +387,7 @@ void gpsSnapshotCapture(uint32_t now);
 void gpsFrameFill(LogFrameGPS* f);
 void emitGpsFrame();
 void drainGpsFrame();
+void flushPageBuffer();
 bool gpsHasUsableLock();
 void gpsLockWatchdog();
 void deployChannel1();
@@ -395,6 +404,9 @@ void printStatus();
 
 void setup() {
     Serial.begin(115200);
+
+    critical_section_init(&system_errors_lock);
+    critical_section_init(&gps_mailbox_lock);
 
     // --- Initialize recovery hardware based on type ---
     if (RECOVERY_TYPE_ID1 == RECOVERY_TYPE_SERVO) {
@@ -486,6 +498,29 @@ void setup() {
         startBuzzerPattern(BUZZER_BOOT_BEEPS);
     }
 
+}
+
+// --- Write any partially-filled page buffer to flash, then reset it ---
+void flushPageBuffer() {
+    if (buffer_index == 0) return;
+
+    // Pad the unused tail with erase state so a whole-page program only
+    // writes the used frames (sub-page wear is acceptable on exit).
+    uint32_t used_bytes = (uint32_t)buffer_index * sizeof(union LogFrame);
+    memset((uint8_t*)page_buffer + used_bytes, 0xFF, FLASH_PAGE_SIZE - used_bytes);
+
+    if (current_flash_addr + FLASH_PAGE_SIZE <= FLIGHT_DATA_FLASH_SIZE) {
+        rp2040.idleOtherCore();
+        uint32_t ints = save_and_disable_interrupts();
+        flash_range_program(flight_flash_offset + current_flash_addr,
+                            (uint8_t*)page_buffer, FLASH_PAGE_SIZE);
+        restore_interrupts(ints);
+        rp2040.resumeOtherCore();
+        current_flash_addr += FLASH_PAGE_SIZE;
+    }
+
+    buffer_index = 0;
+    memset(page_buffer, 0, sizeof(page_buffer));
 }
 
 void loop() {
@@ -757,6 +792,7 @@ void loop() {
             if (chute_deployed && gyro_still && low_altitude) {
                 if (now - state_start_time > GROUND_WAIT_MS) {
                     chute_entry_time = 0;
+                    flushPageBuffer();
                     current_state = STATE_GROUND;
                     Serial.println("Flight complete (chute descent confirmed).");
                 }
@@ -773,6 +809,7 @@ void loop() {
                         ch2_fired = true;
                     }
                     chute_entry_time = 0;
+                    flushPageBuffer();
                     current_state = STATE_GROUND;
                     Serial.println("CHUTE PANIC: Forcing GROUND state.");
                 }
@@ -832,7 +869,9 @@ void setup1() {
             lsm_dsv.setGyroDataRate(LSM6DSV16X_ODR_AT_1920Hz);
             lsm_dsv.setGyroFullScale(LSM6DSV16X_2000dps);
         } else {
+            critical_section_enter_blocking(&system_errors_lock);
             system_errors |= 1;
+            critical_section_exit(&system_errors_lock);
         }
     }
 
@@ -853,7 +892,9 @@ void setup1() {
     }
 
     if (!bmp_ok) {
+        critical_section_enter_blocking(&system_errors_lock);
         system_errors |= 2;
+        critical_section_exit(&system_errors_lock);
     } else {
         bmp.setTemperatureOversampling(BMP3_NO_OVERSAMPLING);
         bmp.setPressureOversampling(BMP3_NO_OVERSAMPLING);
@@ -1003,14 +1044,26 @@ void loop1() {
 
 // --- Drain pending GPS frame into flash page buffer (core 1) ---
 void drainGpsFrame() {
-    if (!gps_pending_flag) return;
+    // Copy the frame out and clear the pending flag atomically. Under the lock
+    // the producer (core 0) cannot start writing a fresh frame mid-copy, so no
+    // torn read is possible.
+    LogFrameGPS snapped;
+    bool have_frame;
+    critical_section_enter_blocking(&gps_mailbox_lock);
+    if (gps_pending_flag) {
+        snapped = gps_pending_frame.gps;
+        gps_pending_flag = false;
+        have_frame = true;
+    } else {
+        have_frame = false;
+    }
+    critical_section_exit(&gps_mailbox_lock);
 
-    gps_pending_flag = false;
-
+    if (!have_frame) return;
     if (current_state < STATE_ACCELERATING || current_state > STATE_CHUTE) return;
     if (buffer_index >= FRAMES_PER_PAGE) return;
 
-    memcpy(&page_buffer[buffer_index].gps, &gps_pending_frame.gps, sizeof(LogFrameGPS));
+    memcpy(&page_buffer[buffer_index].gps, &snapped, sizeof(LogFrameGPS));
     buffer_index++;
 
     if (buffer_index >= FRAMES_PER_PAGE) {
@@ -1216,6 +1269,8 @@ void handleSerialCommands() {
         }
         leds[0] = CRGB::Red; FastLED.show(); // solid red when done
         current_flash_addr = 0;
+        buffer_index = 0;
+        memset(page_buffer, 0, sizeof(page_buffer));
         Serial.println("Erase complete.");
     }
     // --- DUMP_FLASH ---
@@ -1257,6 +1312,8 @@ void handleSerialCommands() {
             current_altitude = 0.0f;
             ch1_fired = false;
             ch2_fired = false;
+            buffer_index = 0;
+            memset(page_buffer, 0, sizeof(page_buffer));
             Serial.println("SYSTEM: State -> ARMED (exited DISARMED).");
             startBuzzerPattern(BUZZER_BOOT_BEEPS);
         } else if (current_state == STATE_ERROR) {
@@ -1268,6 +1325,8 @@ void handleSerialCommands() {
             current_altitude = 0.0f;
             ch1_fired = false;
             ch2_fired = false;
+            buffer_index = 0;
+            memset(page_buffer, 0, sizeof(page_buffer));
             Serial.println("SYSTEM: State -> ARMED (force_armed, zeroing failed sensors).");
             startBuzzerPattern(BUZZER_BOOT_BEEPS);
         } else {
@@ -1477,17 +1536,21 @@ void radioInit() {
         Serial.println(state);
         radio_ready = false;
         radio_error_code = state;
+        critical_section_enter_blocking(&system_errors_lock);
         system_errors |= 4;
+        critical_section_exit(&system_errors_lock);
         return;
     }
     Serial.println(F("success!"));
 
     radio.setFrequency(RADIO_FREQUENCY_MHZ);
     radio.setBandwidth(125.0);
-    radio.setSpreadingFactor(6);
+    radio.setSpreadingFactor(6, true);
     radio.setCodingRate(5);
     radio.setPreambleLength(8);
     radio.implicitHeader(28);
+    radio.setSyncWord(0x12);
+    radio.setCRC(true);
     int pw_state = radio.setOutputPower(10.0);
 
     radio_current_power_dbm = (pw_state == RADIOLIB_ERR_NONE) ? 10.0f : -999.0f;
@@ -1797,7 +1860,6 @@ void handleGps() {
     }
 }
 
-#define GPS_FIX_FRESH_MS 10000
 bool gpsHasUsableLock() {
     if (tinyGPS.location.isValid() &&
         tinyGPS.location.age() < GPS_FIX_FRESH_MS) {
@@ -1833,8 +1895,13 @@ void gpsFrameFill(LogFrameGPS* f) {
 }
 
 void emitGpsFrame() {
+    // Write the frame then set the pending flag under the lock so the consumer
+    // (core 1) can never observe/memcpy a partially-written frame, and can never
+    // be overwriting while it is copying out.
+    critical_section_enter_blocking(&gps_mailbox_lock);
     gpsFrameFill(&gps_pending_frame.gps);
     gps_pending_flag = true;
+    critical_section_exit(&gps_mailbox_lock);
 }
 
 uint8_t nmeaChecksum(const char* payload) {

@@ -216,9 +216,9 @@
       <div class="panel-title"><span class="ic" id="icAtt"></span> Attitude</div>
       <canvas id="att3d"></canvas>
       <div class="att-readout" id="attReadout">
-        <span>Roll <b id="attRoll">0°</b></span>
-        <span>Pitch <b id="attPitch">0°</b></span>
-        <span>Yaw <b id="attYaw">0°</b></span>
+        <span>Tilt <b id="attRoll">0°</b></span>
+        <span>Dir <b id="attPitch">0°</b></span>
+        <span>Yaw <b id="attYaw">—</b></span>
       </div>
     </section>
   </div>
@@ -911,35 +911,44 @@ function eulerFromMatrix(R) {
   return { roll, pitch, yaw };
 }
 function updateAttitude(f, now) {
-  const gx = f["gyro.x"], gy = f["gyro.y"], gz = f["gyro.z"];
   const ax = f["accel.x"], ay = f["accel.y"], az = f["accel.z"];
-  const dt = state.att.lastT ? Math.min((now - state.att.lastT) / 1000, 0.1) : 0.016;
-  state.att.lastT = now;
-
-  // gyro integration in the model frame (sensor→model: X→-Y, Y→-X, Z→-Z)
-  if (gx != null && gy != null && gz != null) {
-    state.att.idle = false;
-    const dR = rotMatrix(-gy * dt, -gx * dt, -gz * dt);
-    state.att.R = matMul(state.att.R, dR);
-  }
-
-  // accel correction (complementary filter) — skip when roll is unobservable.
-  // In ARMED mode frames are rare, so the accel correction would fight the
-  // gyro between frames — keep the raw gyro integration instead.
-  const armed = isArmed(state.latest);
-  if (!armed && ax != null && ay != null && az != null) {
+  if (ax != null && ay != null && az != null) {
     const mag = Math.hypot(ax, ay, az);
     if (mag > 0.3) {
-      const target = rotFromAccel(ax, ay, az);
-      if (target) state.att.R = blendMatrices(state.att.R, target, 0.12);
+      state.att.idle = false;
+      // The accelerometer measures the reaction force, which points AWAY from
+      // gravity — i.e. it points "up". Convert sensor → rocket coords:
+      //   sensor +X = tail, +Y = right, +Z = belly
+      //   rocket  +Y = nose, +Z = belly, +X = right
+      //   ⇒ up_rocket = (ay, -ax, az)
+      let ux = ay / mag, uy = -ax / mag, uz = az / mag;
+      // Orthonormal basis with the arrow nose (model +Y) = up_rocket.
+      // right = normalize(cross((0,0,1), u)) — stable roll reference.
+      let rx = -uy, ry = ux, rz = 0;
+      let rm = Math.hypot(rx, ry, rz);
+      if (rm < 1e-4) { // u parallel to Z — use cross((1,0,0), u)
+        rx = 0; ry = uz; rz = -uy;
+        rm = Math.hypot(rx, ry, rz) || 1;
+      }
+      rx /= rm; ry /= rm; rz /= rm;
+      const bx = uy * rz - uz * ry;
+      const by = uz * rx - ux * rz;
+      const bz = ux * ry - uy * rx;
+      state.att.R = [
+        [rx, ux, bx],
+        [ry, uy, by],
+        [rz, uz, bz],
+      ];
     }
   }
-
-  const e = eulerFromMatrix(state.att.R);
+  // Readout: tilt = angle of the up axis from vertical, dir = tilt direction.
+  const ux = state.att.R[0][1], uy = state.att.R[1][1], uz = state.att.R[2][1];
   const d = 180 / Math.PI;
-  document.getElementById("attRoll").textContent = (e.roll * d).toFixed(1) + "°";
-  document.getElementById("attPitch").textContent = (e.pitch * d).toFixed(1) + "°";
-  document.getElementById("attYaw").textContent = (e.yaw * d).toFixed(1) + "°";
+  const tilt = Math.acos(Math.max(-1, Math.min(1, uy))) * d;
+  const dir = Math.atan2(uz, ux) * d;
+  document.getElementById("attRoll").textContent = tilt.toFixed(1) + "°";
+  document.getElementById("attPitch").textContent = dir.toFixed(1) + "°";
+  document.getElementById("attYaw").textContent = "—";
 }
 function drawAttitude() {
   const cv = document.getElementById("att3d");

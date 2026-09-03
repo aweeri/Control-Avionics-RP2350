@@ -1,4 +1,4 @@
-GPIO 0: Secondary Flash Chip Select
+GPIO 0: 
 GPIO 1:
 GPIO 2: I2C1 SDA
 GPIO 3: I2C1 SCL

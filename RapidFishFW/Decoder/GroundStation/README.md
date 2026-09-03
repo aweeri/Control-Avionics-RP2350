@@ -93,7 +93,7 @@ Decoder/GroundStation/
 ├─ server.ts               # Bun HTTP + WebSocket server, CSV writer, browser launcher
 ├─ csvLogger.ts            # Dynamic-column CSV logger (flatten + union columns)
 ├─ package.json            # Scripts: dev/start/build/bundle + UI generator
-├─ public/index.html       # Single-file browser UI (cards, canvas charts, serial)
+├─ public/index.html       # Single-file browser UI (dashboard, map, 3D, charts, serial)
 ├─ scripts/
 │  └─ generate-ui.ts       # Inlines public/index.html into generated/ui.ts for exe
 ├─ generated/ui.ts         # (generated) embedded HTML
@@ -111,9 +111,33 @@ Decoder/GroundStation/
    messages.
 4. The server parses JSON frames: logs them to CSV (if recording) and
    broadcasts them to all connected tabs as `{type:"telemetry", data}`.
-5. Each tab renders telemetry cards and live canvas charts (altitude/pressure,
-   RSSI/SNR, accel, gyro) with no external dependencies, so the whole thing
-   works fully offline.
+5. Each tab renders the full-screen UI: a Leaflet ground-track map, a canvas
+   3D attitude view, icon+row telemetry readout sections, and live canvas
+   charts for every graphable channel — all fitting on one screen with no
+   page scrolling.
+
+## UI features
+
+- **Full-screen layout** — a fixed 3-column grid (map + 3D | telemetry |
+  charts) that fills the viewport with no page scroll; only the telemetry and
+  chart panels scroll internally.
+- **Ground track map** — Leaflet with OpenStreetMap tiles (no API key) draws
+  the live ground-track polyline and a marker at the current position. If
+  Leaflet or the tile CDN is unreachable (offline), it falls back to a dark
+  canvas track plot so the feature never breaks.
+- **3D attitude view** — a custom canvas rocket mesh (nose cone, body, fins,
+  nozzle) rendered with flat shading and painter's algorithm (no Three.js).
+  Orientation is estimated with a complementary filter: gyro integration
+  corrected by the accelerometer gravity vector. A flame effect appears when
+  g-force exceeds 1.3 g. Roll/pitch/yaw are shown below the view.
+- **Telemetry readouts** — professional icon + label + value rows organized
+  into Flight, IMU, Barometer, Power, Radio and GPS sections, each with a
+  small inline SVG icon.
+- **Charts** — every graphable channel is plotted: barometric altitude above
+  sea level (derived from pressure via the hypsometric formula), GPS
+  altitude, pressure, accel XYZ, gyro XYZ, g-force (derived from the accel
+  vector), core/baro temps, battery + pyro voltages, RSSI/SNR, GPS
+  sats/HDOP, magnetometer XYZ, flight state and flash usage.
 
 ## Recording control
 

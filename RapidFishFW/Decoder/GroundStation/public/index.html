@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RapidFish GroundStation</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #0d1117;
@@ -16,26 +18,52 @@
     --green: #3fb950;
     --orange: #d29922;
     --red: #f85149;
+    --purple: #a371f7;
+    --map-bg: #0b0e14;
+    --log-bg: #010409;
+    --tip-bg: rgba(1,4,9,.92);
+    --grid: #2d333b;
+    --grid2: #1c2333;
+  }
+  body.light {
+    --bg: #f6f8fa;
+    --panel: #ffffff;
+    --panel2: #eef1f5;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --green: #1a7f37;
+    --orange: #9a6700;
+    --red: #cf222e;
+    --purple: #8250df;
+    --map-bg: #e8ecf0;
+    --log-bg: #f6f8fa;
+    --tip-bg: rgba(255,255,255,.95);
+    --grid: #d0d7de;
+    --grid2: #e4e8ec;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     font-family: "Segoe UI", system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
+    display: flex; flex-direction: column;
   }
   header {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 12px 18px;
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;
+    padding: 6px 12px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
   }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header .sub { color: var(--muted); font-size: 12px; }
+  header h1 { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  header .sub { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
   .spacer { flex: 1; }
   .status-pill {
-    padding: 4px 10px; border-radius: 999px; font-size: 12px;
-    border: 1px solid var(--border); background: var(--panel2);
+    padding: 3px 9px; border-radius: 999px; font-size: 11px;
+    border: 1px solid var(--border); background: var(--panel2); white-space: nowrap;
   }
   .status-pill.online { color: var(--green); border-color: var(--green); }
   .status-pill.armed { color: var(--red); border-color: var(--red); }
@@ -43,152 +71,1005 @@
   button {
     background: var(--panel2); color: var(--text);
     border: 1px solid var(--border); border-radius: 6px;
-    padding: 7px 14px; font-size: 13px; cursor: pointer;
-    transition: background .15s, border-color .15s;
+    padding: 4px 11px; font-size: 12px; cursor: pointer;
+    transition: background .15s, border-color .15s; white-space: nowrap;
   }
   button:hover { border-color: var(--accent); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:disabled { opacity: .5; cursor: not-allowed; }
 
-  main { padding: 16px; max-width: 1500px; margin: 0 auto; }
-  .grid {
-    display: grid; gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  main {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.5fr);
+    gap: 10px; padding: 10px; overflow: hidden;
   }
-  .card {
+  @media (max-width: 1100px) {
+    main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 1fr 1fr; }
+  }
+  .col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+  .col > .panel { flex: 1 1 0; min-height: 0; }
+  .panel {
     background: var(--panel); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px 16px;
+    border-radius: 10px; padding: 8px 10px;
+    display: flex; flex-direction: column; min-height: 0; min-width: 0;
   }
-  .card .label {
-    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted); margin-bottom: 6px;
+  .panel-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
+    flex: 0 0 auto;
   }
-  .card .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .card .unit { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 3px; }
-  .card .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .panel-title .ic { display: flex; }
+  .scroll { overflow-y: auto; min-height: 0; flex: 1; }
+  .scroll::-webkit-scrollbar { width: 8px; }
+  .scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-  .section-title {
-    margin: 22px 0 10px; font-size: 14px; font-weight: 600; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .06em;
+  /* Map */
+  #map { flex: 1; min-height: 0; border-radius: 8px; background: var(--map-bg); z-index: 1; }
+  #mapFallback { width: 100%; flex: 1; min-height: 0; border-radius: 8px; background: var(--map-bg); display: block; }
+  #mapFallback[hidden] { display: none; }
+  .map-note { font-size: 10px; color: var(--muted); margin-top: 4px; flex: 0 0 auto; }
+  .coord-row {
+    display: flex; align-items: center; gap: 6px; margin-top: 4px; flex: 0 0 auto;
   }
-  .charts { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
-  @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
-  canvas {
-    width: 100%; height: 220px; background: var(--panel); border: 1px solid var(--border);
-    border-radius: 10px; display: block;
+  .coord-row .coord {
+    font-family: "Cascadia Code", Consolas, monospace; font-size: 11px;
+    color: var(--text); background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 6px; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
-  .chart-wrap { position: relative; }
-  .chart-wrap .title {
-    position: absolute; top: 8px; left: 12px; font-size: 12px; color: var(--muted);
-    background: rgba(0,0,0,.4); padding: 2px 8px; border-radius: 4px;
+  .coord-row button { padding: 2px 8px; font-size: 10px; }
+
+  /* 3D attitude */
+  #att3d { flex: 1; min-height: 0; width: 100%; border-radius: 8px; display: block; background: var(--map-bg); }
+  .att-readout {
+    display: flex; gap: 14px; justify-content: center; margin-top: 6px;
+    font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; flex: 0 0 auto;
   }
+  .att-readout b { color: var(--text); font-weight: 600; }
+
+  /* Telemetry readout sections */
+  .tsec {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 8px; overflow: hidden;
+  }
+  .tsec-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted);
+    padding: 5px 10px; background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+  .tsec-head .ic { display: flex; }
+  .trow {
+    display: flex; align-items: center; gap: 8px;
+    padding: 3px 10px; font-size: 12px;
+    border-bottom: 1px solid rgba(45,51,59,.4);
+  }
+  .trow:last-child { border-bottom: none; }
+  .trow .tic { color: var(--muted); display: flex; flex: 0 0 auto; }
+  .trow .tlbl { color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow .tval { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .trow .tunit { color: var(--muted); font-weight: 400; font-size: 10px; margin-left: 2px; }
+  .trow.hot .tval { color: var(--red); }
+  .trow.ok .tval { color: var(--green); }
+
+  /* Charts */
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 4px; }
+  .chart-wrap { background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; position: relative; }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 2px; }
+  .chart-head .title { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .legend { display: flex; gap: 5px; flex-wrap: wrap; }
+  .legend .lg { display: flex; align-items: center; gap: 2px; font-size: 8px; color: var(--muted); cursor: pointer; user-select: none; padding: 1px 3px; border-radius: 3px; border: 1px solid transparent; }
+  .legend .lg:hover { border-color: var(--border); }
+  .legend .lg.off { opacity: .3; text-decoration: line-through; }
+  .legend .lg i { width: 6px; height: 6px; border-radius: 1px; display: inline-block; }
+  canvas.chart { width: 100%; height: 90px; display: block; cursor: crosshair; }
+  .chart-tip {
+    position: absolute; pointer-events: none; z-index: 5;
+    background: var(--tip-bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 6px; font-size: 9px; color: var(--text); white-space: nowrap;
+    font-variant-numeric: tabular-nums; display: none;
+  }
+  .chart-tip .tip-row { display: flex; align-items: center; gap: 4px; }
+  .chart-tip .tip-row i { width: 6px; height: 6px; border-radius: 1px; display: inline-block; }
+  .chart-tip .tip-row .tip-v { color: var(--muted); }
 
   #log {
-    background: #010409; border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px; font-family: "Cascadia Code", Consolas, monospace;
-    font-size: 12px; height: 200px; overflow-y: auto; white-space: pre-wrap;
-    color: var(--muted);
+    background: var(--log-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px; font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 10px; height: 100px; overflow-y: auto; white-space: pre-wrap;
+    color: var(--muted); flex: 0 0 auto;
   }
   #log .lvl-warn { color: var(--orange); }
   #log .lvl-error { color: var(--red); }
-  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .csv-path { font-family: monospace; font-size: 12px; color: var(--muted); }
-  details { margin-top: 20px; }
-  summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
-  th { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: .05em; }
 </style>
 </head>
 <body>
 <header>
-  <h1>RapidFish GroundStation</h1>
+  <h1>🚀 RapidFish GroundStation</h1>
   <span class="sub" id="csvPath">CSV: …</span>
   <div class="spacer"></div>
   <span class="status-pill" id="wsPill">● server</span>
   <span class="status-pill" id="statePill">state: —</span>
   <span class="status-pill" id="framePill">—</span>
+  <button id="themeBtn" title="Toggle light/dark theme">◐ Theme</button>
   <button id="recBtn" class="primary">● Rec</button>
   <button id="connectBtn">Connect serial</button>
 </header>
 
 <main>
-  <div class="section-title">Live telemetry</div>
-  <div class="grid" id="cards"></div>
-
-  <div class="section-title">Charts</div>
-  <div class="charts">
-    <div class="chart-wrap"><span class="title">Altitude / Pressure</span><canvas id="chAlt"></canvas></div>
-    <div class="chart-wrap"><span class="title">RSSI / SNR</span><canvas id="chRadio"></canvas></div>
-    <div class="chart-wrap"><span class="title">Acceleration (m/s²)</span><canvas id="chAccel"></canvas></div>
-    <div class="chart-wrap"><span class="title">Gyro (°/s)</span><canvas id="chGyro"></canvas></div>
+  <div class="col">
+    <section class="panel">
+      <div class="panel-title"><span class="ic" id="icMap"></span> Ground track</div>
+      <div id="map"></div>
+      <canvas id="mapFallback" hidden></canvas>
+      <div class="map-note" id="mapNote">Waiting for GPS fix…</div>
+      <div class="coord-row">
+        <span class="coord" id="coordText">—</span>
+        <button id="copyCoordBtn" title="Copy coordinates for Google Maps">Copy</button>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-title"><span class="ic" id="icAtt"></span> Attitude</div>
+      <canvas id="att3d"></canvas>
+      <div class="att-readout" id="attReadout">
+        <span>Roll <b id="attRoll">0°</b></span>
+        <span>Pitch <b id="attPitch">0°</b></span>
+        <span>Yaw <b id="attYaw">0°</b></span>
+      </div>
+    </section>
   </div>
 
-  <details>
-    <summary>Raw frames / event log</summary>
+  <div class="col">
+    <section class="panel">
+      <div class="panel-title"><span class="ic" id="icTele"></span> Telemetry</div>
+      <div class="scroll" id="sections"></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel">
+      <div class="panel-title"><span class="ic" id="icCharts"></span> Charts</div>
+      <div class="scroll"><div class="charts" id="charts"></div></div>
+    </section>
     <div id="log"></div>
-  </details>
+  </div>
 </main>
 
 <script>
 "use strict";
 
+// ===========================================================================
+// Tiny inline SVG icon set (16x16, stroke = currentColor)
+// ===========================================================================
+const S = 'viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS = {
+  rocket:  `<svg ${S}><path d="M8 1.5c1.8 2 2.5 4.5 2.5 7L8 15 5.5 8.5C5.5 6 6.2 3.5 8 1.5z"/><circle cx="8" cy="7" r="1.2"/><path d="M5.5 8.5 3 10l1 1.5 2-1M10.5 8.5 13 10l-1 1.5-2-1"/></svg>`,
+  mountain:`<svg ${S}><path d="M1 13 6 4l3 5 2-3 4 7z"/></svg>`,
+  gauge:   `<svg ${S}><path d="M2 11a6 6 0 1 1 12 0"/><path d="M8 11 11 7"/></svg>`,
+  battery: `<svg ${S}><rect x="1" y="5" width="12" height="6" rx="1"/><path d="M14 7v2"/><path d="M3 7v2M5.5 7v2M8 7v2"/></svg>`,
+  sat:     `<svg ${S}><circle cx="8" cy="8" r="2"/><path d="M8 2v3M8 11v3M2 8h3M11 8h3M3.5 3.5l2 2M10.5 10.5l2 2M12.5 3.5l-2 2M5.5 10.5l-2 2"/></svg>`,
+  signal:  `<svg ${S}><path d="M2 12a8 8 0 0 1 12 0"/><path d="M4.5 12a4.5 4.5 0 0 1 7 0"/><circle cx="8" cy="12" r="1"/></svg>`,
+  temp:    `<svg ${S}><path d="M8 1.5v8.2a3 3 0 1 1-2 0V1.5z"/><circle cx="7" cy="12" r="1.2"/></svg>`,
+  clock:   `<svg ${S}><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>`,
+  accel:   `<svg ${S}><path d="M8 2v12M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>`,
+  gyro:    `<svg ${S}><path d="M8 3a5 5 0 1 1-5 5"/><path d="M8 1v2M3 8H1"/></svg>`,
+  pressure:`<svg ${S}><path d="M2 12a6 6 0 1 1 12 0"/><path d="M8 12 5 6"/></svg>`,
+  mag:     `<svg ${S}><path d="M3 3h4v10H3zM9 3h4v10H9z"/><path d="M5 3V1M11 3V1"/></svg>`,
+  radio:   `<svg ${S}><path d="M2 6a8 8 0 0 1 12 0"/><path d="M4.5 8.5a4.5 4.5 0 0 1 7 0"/><circle cx="8" cy="11" r="1.2"/></svg>`,
+  gps:     `<svg ${S}><path d="M8 1a5 5 0 0 0-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 0 0-5-5z"/><circle cx="8" cy="6" r="1.5"/></svg>`,
+  power:   `<svg ${S}><path d="M8 1v6"/><path d="M4.5 3.5a6 6 0 1 0 7 0"/></svg>`,
+  flash:   `<svg ${S}><path d="M9 1 3 9h4l-1 6 6-8H8z"/></svg>`,
+  chip:    `<svg ${S}><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M7 1v3M10 1v3M7 12v3M10 12v3M1 7h3M1 10h3M12 7h3M12 10h3"/></svg>`,
+  chart:   `<svg ${S}><path d="M2 14V2M2 14h12"/><path d="M5 11l3-4 2 2 3-5"/></svg>`,
+  tele:    `<svg ${S}><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M6 3v10M10 3v10M2 8h12"/></svg>`,
+  map:     `<svg ${S}><path d="M1 4l5-2 4 2 5-2v10l-5 2-4-2-5 2z"/><path d="M6 2v10M10 4v10"/></svg>`,
+};
+function icon(name) { return ICONS[name] || ""; }
+
+// ===========================================================================
 // State
+// ===========================================================================
 const state = {
   ws: null,
   serial: null,
   reader: null,
   rec: true,
-  latest: {},          // merged across apids so cards don't blank
-  history: {           // time-series per chart
-    alt:   { t: [], s: [] },
-    pres:  { t: [], s: [] },
-    rssi:  { t: [], s: [] },
-    snr:   { t: [], s: [] },
-    accx:  { t: [], s: [] }, accy: { t: [], s: [] }, accz: { t: [], s: [] },
-    gyx:   { t: [], s: [] }, gyy:  { t: [], s: [] }, gyz: { t: [], s: [] },
-  },
+  latest: {},
+  history: {},
+  track: [],
+  map: null, trackLine: null, marker: null, mapFallback: null, mapFallbackCtx: null,
+  att: { R: [[1,0,0],[0,1,0],[0,0,1]], lastT: null, idle: true },
+  chartEls: {},
+  lastPacket: {},   // apid -> { t: Date.now(), label }
 };
 const MAX_POINTS = 600;
-let lastApid0 = null;
+const MAX_TRACK = 2000;
 let frameCount = 0;
+let drawQueued = false;
 
+// ===========================================================================
+// Helpers
+// ===========================================================================
 function toValue(v) {
   if (typeof v === "string" && /^0x[0-9a-fA-F]+$/.test(v)) return Number.parseInt(v, 16);
   return v;
 }
-function flatten(o, prefix="") {
+function flatten(o, prefix) {
+  prefix = prefix || "";
   const out = {};
-  for (const [k,v] of Object.entries(o)) {
-    const key = prefix ? `${prefix}.${k}` : k;
-    if (v && typeof v === "object" && !Array.isArray(v)) Object.assign(out, flatten(v,key));
-    else if (Array.isArray(v)) v.forEach((it,i)=>{ out[`${key}[${i}]`]=toValue(it); });
-    else out[key]=toValue(v);
+  for (const k of Object.keys(o)) {
+    const v = o[k];
+    const key = prefix ? prefix + "." + k : k;
+    if (v && typeof v === "object" && !Array.isArray(v)) Object.assign(out, flatten(v, key));
+    else if (Array.isArray(v)) v.forEach((it, i) => { out[key + "[" + i + "]"] = toValue(it); });
+    else out[key] = toValue(v);
   }
   return out;
 }
+function num(v, d) {
+  if (v == null || isNaN(Number(v))) return "—";
+  return Number(v).toFixed(d == null ? 2 : d);
+}
+function fmtUptime(ms) {
+  if (ms == null || isNaN(ms)) return "—";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + "s";
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + "m " + (s % 60) + "s";
+  const h = Math.floor(m / 60);
+  return h + "h " + (m % 60) + "m";
+}
+function stateStr(f) {
+  if (f.flight_state_str != null) return String(f.flight_state_str);
+  if (f.flight_state != null) return String(f.flight_state);
+  return "—";
+}
+function isArmed(f) {
+  const fs = stateStr(f).toUpperCase();
+  return fs === "ARMED" || Number(f.flight_state) === 3;
+}
 
+// ===========================================================================
+// Telemetry readout sections (icon + label + value rows)
+// ===========================================================================
+const SECTIONS = [
+  {
+    id: "flight", title: "Flight", icon: "rocket",
+    rows: [
+      { id: "state",  label: "State",       icon: "rocket",   get: f => stateStr(f), armed: true },
+      { id: "alt",    label: "Altitude MSL",icon: "mountain", get: f => num(f.baro_alt) + " m" },
+      { id: "gforce", label: "G-force",     icon: "gauge",    get: f => num(f.gforce, 2) + " g" },
+      { id: "uptime", label: "Uptime",      icon: "clock",    get: f => fmtUptime(f.timestamp) },
+      { id: "flash",  label: "Flash used",  icon: "flash",    get: f => f.flash_used != null ? (f.flash_used / 2).toFixed(0) + "%" : "—" },
+    ],
+  },
+  {
+    id: "imu", title: "IMU", icon: "accel",
+    rows: [
+      { id: "ax", label: "Accel X", icon: "accel", get: f => num(f["accel.x"]) + " m/s²" },
+      { id: "ay", label: "Accel Y", icon: "accel", get: f => num(f["accel.y"]) + " m/s²" },
+      { id: "az", label: "Accel Z", icon: "accel", get: f => num(f["accel.z"]) + " m/s²" },
+      { id: "gx", label: "Gyro X",  icon: "gyro",  get: f => num(f["gyro.x"], 3) + " rad/s" },
+      { id: "gy", label: "Gyro Y",  icon: "gyro",  get: f => num(f["gyro.y"], 3) + " rad/s" },
+      { id: "gz", label: "Gyro Z",  icon: "gyro",  get: f => num(f["gyro.z"], 3) + " rad/s" },
+    ],
+  },
+  {
+    id: "baro", title: "Barometer", icon: "pressure",
+    rows: [
+      { id: "alt",   label: "Altitude MSL", icon: "mountain", get: f => num(f.baro_alt) + " m" },
+      { id: "pres",  label: "Pressure",     icon: "pressure", get: f => num(f.pressure_hpa) + " hPa" },
+      { id: "btemp", label: "Baro temp",    icon: "temp",     get: f => num(f.temperature_c, 1) + " °C" },
+    ],
+  },
+  {
+    id: "power", title: "Power", icon: "battery",
+    rows: [
+      { id: "bat",   label: "Battery",   icon: "battery", get: f => num(f.bat_voltage, 2) + " V" },
+      { id: "p1",    label: "Pyro 1",    icon: "power",   get: f => num(f.p1_voltage, 2) + " V" },
+      { id: "p2",    label: "Pyro 2",    icon: "power",   get: f => num(f.p2_voltage, 2) + " V" },
+      { id: "ctemp", label: "Core temp", icon: "temp",    get: f => num(f.core_temp_c, 1) + " °C" },
+    ],
+  },
+  {
+    id: "radio", title: "Radio", icon: "radio",
+    rows: [
+      { id: "rssi", label: "RSSI", icon: "signal", get: f => num(f.rssi) + " dBm" },
+      { id: "snr",  label: "SNR",  icon: "signal", get: f => num(f.snr) + " dB" },
+    ],
+  },
+  {
+    id: "gps", title: "GPS", icon: "gps",
+    rows: [
+      { id: "lat",  label: "Latitude",  icon: "gps",     get: f => f.lat != null ? Number(f.lat).toFixed(6) : "—" },
+      { id: "lon",  label: "Longitude", icon: "gps",     get: f => f.lon != null ? Number(f.lon).toFixed(6) : "—" },
+      { id: "galt", label: "GPS alt",   icon: "mountain",get: f => num(f.gps_alt) + " m" },
+      { id: "sats", label: "Sats",      icon: "sat",     get: f => f.sats != null ? f.sats : "—" },
+      { id: "hdop", label: "HDOP",      icon: "gauge",   get: f => num(f.hdop) },
+      { id: "mx",   label: "Mag X",     icon: "mag",     get: f => f["mag.x"] != null ? f["mag.x"] : "—" },
+      { id: "my",   label: "Mag Y",     icon: "mag",     get: f => f["mag.y"] != null ? f["mag.y"] : "—" },
+      { id: "mz",   label: "Mag Z",     icon: "mag",     get: f => f["mag.z"] != null ? f["mag.z"] : "—" },
+    ],
+  },
+  {
+    id: "link", title: "Link", icon: "signal",
+    rows: [
+      { id: "core", label: "Core (apid 0)", icon: "chip",  get: () => "—", last: true, apid: 0 },
+      { id: "gps",  label: "GPS (apid 1)",  icon: "sat",   get: () => "—", last: true, apid: 1 },
+    ],
+  },
+];
+function buildSections() {
+  const wrap = document.getElementById("sections");
+  wrap.innerHTML = "";
+  for (const sec of SECTIONS) {
+    const secEl = document.createElement("div");
+    secEl.className = "tsec";
+    secEl.innerHTML = '<div class="tsec-head"><span class="ic">' + icon(sec.icon) + '</span>' + sec.title + '</div>';
+    for (const r of sec.rows) {
+      const el = document.createElement("div");
+      el.className = "trow";
+      el.id = "row-" + sec.id + "-" + r.id;
+      el.innerHTML = '<span class="tic">' + icon(r.icon) + '</span><span class="tlbl">' + r.label + '</span><span class="tval">—</span>';
+      secEl.appendChild(el);
+    }
+    wrap.appendChild(secEl);
+  }
+}
+function renderTelemetry() {
+  const l = state.latest;
+  for (const sec of SECTIONS) {
+    for (const r of sec.rows) {
+      const el = document.getElementById("row-" + sec.id + "-" + r.id);
+      if (!el) continue;
+      const valEl = el.querySelector(".tval");
+      let v;
+      if (r.last) {
+        // per-apid last packet age
+        const lp = state.lastPacket[r.apid];
+        v = lp ? fmtAge(Date.now() - lp.t) : "—";
+      } else {
+        v = r.get(l);
+      }
+      // split value and unit (unit is the trailing token like " m", " V")
+      const m = /^(.*?)(\s+[^\s]+)$/.exec(v);
+      if (m) {
+        valEl.textContent = m[1];
+        let u = el.querySelector(".tunit");
+        if (!u) { u = document.createElement("span"); u.className = "tunit"; valEl.after(u); }
+        u.textContent = m[2].trim();
+      } else {
+        valEl.textContent = v;
+        const u = el.querySelector(".tunit");
+        if (u) u.remove();
+      }
+      el.classList.toggle("armed", r.armed && isArmed(l));
+      // highlight stale links
+      if (r.last) {
+        const lp = state.lastPacket[r.apid];
+        const stale = lp && (Date.now() - lp.t) > 2000;
+        el.classList.toggle("hot", !!stale);
+        el.classList.toggle("ok", !!lp && !stale);
+      }
+    }
+  }
+}
+function fmtAge(ms) {
+  if (ms == null || isNaN(ms)) return "—";
+  if (ms < 1000) return Math.round(ms) + " ms";
+  return (ms / 1000).toFixed(1) + " s";
+}
+
+// ===========================================================================
+// Charts
+// ===========================================================================
+const CHART_DEFS = [
+  { id: "chAlt",   title: "Altitude", series: [
+    { key: "baro_alt", color: "#2f81f7", label: "Baro" },
+    { key: "gps_alt",  color: "#3fb950", label: "GPS" },
+  ]},
+  { id: "chPres",  title: "Pressure", series: [
+    { key: "pressure_hpa", color: "#d29922", label: "hPa" },
+  ]},
+  { id: "chAccel", title: "Accel", series: [
+    { key: "accel.x", color: "#2f81f7", label: "X" },
+    { key: "accel.y", color: "#3fb950", label: "Y" },
+    { key: "accel.z", color: "#f85149", label: "Z" },
+  ]},
+  { id: "chGyro",  title: "Gyro", series: [
+    { key: "gyro.x", color: "#2f81f7", label: "X" },
+    { key: "gyro.y", color: "#3fb950", label: "Y" },
+    { key: "gyro.z", color: "#f85149", label: "Z" },
+  ]},
+  { id: "chG",     title: "G-force", series: [
+    { key: "gforce", color: "#f85149", label: "g" },
+  ]},
+  { id: "chTemp",  title: "Temps", series: [
+    { key: "core_temp_c", color: "#f85149", label: "Core" },
+    { key: "temperature_c", color: "#d29922", label: "Baro" },
+  ]},
+  { id: "chPower", title: "Power", series: [
+    { key: "bat_voltage", color: "#3fb950", label: "Batt" },
+    { key: "p1_voltage",  color: "#d29922", label: "P1" },
+    { key: "p2_voltage",  color: "#2f81f7", label: "P2" },
+  ]},
+  { id: "chRadio", title: "Radio", series: [
+    { key: "rssi", color: "#2f81f7", label: "RSSI" },
+    { key: "snr",  color: "#3fb950", label: "SNR" },
+  ]},
+  { id: "chGps",   title: "GPS", series: [
+    { key: "sats", color: "#3fb950", label: "Sats" },
+    { key: "hdop", color: "#d29922", label: "HDOP" },
+  ]},
+  { id: "chMag",   title: "Mag", series: [
+    { key: "mag.x", color: "#2f81f7", label: "X" },
+    { key: "mag.y", color: "#3fb950", label: "Y" },
+    { key: "mag.z", color: "#f85149", label: "Z" },
+  ]},
+  { id: "chState", title: "State", series: [
+    { key: "flight_state", color: "#a371f7", label: "State" },
+  ]},
+  { id: "chFlash", title: "Flash", series: [
+    { key: "flash_pct", color: "#d29922", label: "%" },
+  ]},
+];
+function buildCharts() {
+  const wrap = document.getElementById("charts");
+  wrap.innerHTML = "";
+  for (const def of CHART_DEFS) {
+    const el = document.createElement("div");
+    el.className = "chart-wrap";
+    let legend = "";
+    for (const s of def.series) legend += '<span class="lg" data-key="' + s.key + '"><i style="background:' + s.color + '"></i>' + s.label + '</span>';
+    el.innerHTML = '<div class="chart-head"><span class="title">' + def.title + '</span><span class="legend">' + legend + '</span></div><canvas id="' + def.id + '" class="chart"></canvas><div class="chart-tip"></div>';
+    wrap.appendChild(el);
+    state.chartEls[def.id] = el.querySelector("canvas");
+    for (const s of def.series) {
+      if (!state.history[s.key]) state.history[s.key] = { t: [], s: [] };
+    }
+    // clickable legend: toggle series visibility
+    el.querySelectorAll(".lg").forEach(lg => {
+      lg.addEventListener("click", () => {
+        const key = lg.dataset.key;
+        const s = def.series.find(x => x.key === key);
+        if (!s) return;
+        s.hidden = !s.hidden;
+        lg.classList.toggle("off", s.hidden);
+        drawCharts();
+      });
+    });
+    // hover: crosshair + tooltip with exact values
+    const canvas = el.querySelector("canvas");
+    const tip = el.querySelector(".chart-tip");
+    canvas.addEventListener("mousemove", (ev) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = ev.clientX - rect.left;
+      const my = ev.clientY - rect.top;
+      drawCharts();
+      drawHover(def, canvas, tip, mx, my);
+    });
+    canvas.addEventListener("mouseleave", () => { tip.style.display = "none"; drawCharts(); });
+  }
+}
+function drawHover(def, canvas, tip, mx, my) {
+  const ctx = canvas.getContext("2d");
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  const dpr = devicePixelRatio;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // recompute scale (same as drawCharts, only visible series)
+  let min = Infinity, max = -Infinity, tMin = Infinity, tMax = -Infinity;
+  for (const s of def.series) {
+    if (s.hidden) continue;
+    const b = state.history[s.key];
+    if (!b || !b.t.length) continue;
+    for (const v of b.s) { if (v < min) min = v; if (v > max) max = v; }
+    tMin = Math.min(tMin, b.t[0]);
+    tMax = Math.max(tMax, b.t[b.t.length - 1]);
+  }
+  if (min === Infinity) return;
+  if (min === max) { min -= 1; max += 1; }
+  const pad = 3;
+  const y = v => (h - pad) - ((v - min) / (max - min)) * (h - 2 * pad) + pad / 2;
+  const x = t => ((t - tMin) / (tMax - tMin || 1)) * w;
+
+  // find nearest time index across visible series
+  const tAt = tMin + (mx / w) * (tMax - tMin);
+  let best = null, bestDt = Infinity;
+  for (const s of def.series) {
+    if (s.hidden) continue;
+    const b = state.history[s.key];
+    if (!b || !b.t.length) continue;
+    // binary search nearest sample
+    let lo = 0, hi = b.t.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (b.t[mid] < tAt) lo = mid + 1; else hi = mid;
+    }
+    const dt = Math.abs(b.t[lo] - tAt);
+    if (dt < bestDt) { bestDt = dt; best = { s, b, i: lo }; }
+  }
+  if (!best) return;
+  const { s, b, i } = best;
+  const px = x(b.t[i]), py = y(b.s[i]);
+
+  // crosshair
+  ctx.strokeStyle = "rgba(139,148,158,0.5)"; ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+  ctx.setLineDash([]);
+  // point marker
+  ctx.fillStyle = s.color;
+  ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+
+  // tooltip content: all visible series values at this time index
+  let rows = "";
+  for (const ss of def.series) {
+    if (ss.hidden) continue;
+    const bb = state.history[ss.key];
+    if (!bb || !bb.t.length) continue;
+    // nearest index for this series
+    let lo = 0, hi = bb.t.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (bb.t[mid] < b.t[i]) lo = mid + 1; else hi = mid;
+    }
+    rows += '<div class="tip-row"><i style="background:' + ss.color + '"></i>' + ss.label + ' <span class="tip-v">' + Number(bb.s[lo]).toFixed(2) + '</span></div>';
+  }
+  tip.innerHTML = rows;
+  tip.style.display = "block";
+  // position tooltip near cursor, flip if near right/bottom edge
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let tx = mx + 10, ty = my + 10;
+  if (tx + tw > w) tx = mx - tw - 10;
+  if (ty + th > h) ty = my - th - 10;
+  tip.style.left = tx + "px";
+  tip.style.top = ty + "px";
+}
+function drawCharts() {
+  for (const def of CHART_DEFS) {
+    const canvas = state.chartEls[def.id];
+    if (!canvas) continue;
+    const ctx = canvas.getContext("2d");
+    const dpr = devicePixelRatio;
+    const W = canvas.width = canvas.offsetWidth * dpr;
+    const Hpx = canvas.height = canvas.offsetHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = canvas.offsetWidth, h = canvas.offsetHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    let min = Infinity, max = -Infinity, tMin = Infinity, tMax = -Infinity;
+    for (const s of def.series) {
+      if (s.hidden) continue;
+      const b = state.history[s.key];
+      if (!b || !b.t.length) continue;
+      for (const v of b.s) { if (v < min) min = v; if (v > max) max = v; }
+      tMin = Math.min(tMin, b.t[0]);
+      tMax = Math.max(tMax, b.t[b.t.length - 1]);
+    }
+    if (min === Infinity) {
+      ctx.strokeStyle = "#2d333b"; ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(0, h * i / 4); ctx.lineTo(w, h * i / 4); ctx.stroke(); }
+      continue;
+    }
+    if (min === max) { min -= 1; max += 1; }
+    const pad = 3;
+    const y = v => (h - pad) - ((v - min) / (max - min)) * (h - 2 * pad) + pad / 2;
+    const x = t => ((t - tMin) / (tMax - tMin || 1)) * w;
+
+    ctx.strokeStyle = "#2d333b"; ctx.lineWidth = 1;
+    for (let i = 0; i <= 3; i++) {
+      ctx.beginPath(); ctx.moveTo(0, h * i / 3); ctx.lineTo(w, h * i / 3); ctx.stroke();
+      const v = max - (i * (max - min) / 3);
+      ctx.fillStyle = "#8b949e"; ctx.font = "8px sans-serif";
+      // top label at i=0 would be clipped; draw it just below the top edge
+      const ly = i === 0 ? 8 : h * i / 3 - 1;
+      ctx.fillText(v.toFixed(1), 2, ly);
+    }
+    ctx.strokeStyle = "#2d333b"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, h); ctx.stroke();
+
+    for (const s of def.series) {
+      if (s.hidden) continue;
+      const b = state.history[s.key];
+      if (!b || !b.t.length) continue;
+      ctx.strokeStyle = s.color; ctx.lineWidth = 1.4; ctx.beginPath();
+      b.t.forEach((t, i) => {
+        const px = x(t), py = y(b.s[i]);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+  }
+}
+function queueDraw() {
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => { drawQueued = false; drawCharts(); drawAttitude(); });
+}
+
+// ===========================================================================
+// Map (Leaflet OSM tiles, no API key; canvas fallback when offline)
+// ===========================================================================
+function initMap() {
+  const mapEl = document.getElementById("map");
+  if (window.L) {
+    try {
+      state.map = L.map("map", { zoomControl: true, attributionControl: false }).setView([0, 0], 2);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(state.map);
+      state.trackLine = L.polyline([], { color: "#2f81f7", weight: 2, opacity: 0.9 }).addTo(state.map);
+      state.marker = L.circleMarker([0, 0], {
+        radius: 5, color: "#f85149", fillColor: "#f85149", fillOpacity: 1, weight: 2,
+      }).addTo(state.map);
+      state.map.on("tileerror", () => {
+        document.getElementById("mapNote").textContent = "Tiles offline — track still shown on dark background.";
+      });
+      // Fix Leaflet's half-size rendering: observe the container's real size
+      // and invalidate whenever it changes (flex layouts resolve late).
+      const fixSize = () => state.map.invalidateSize();
+      setTimeout(fixSize, 50);
+      setTimeout(fixSize, 300);
+      setTimeout(fixSize, 800);
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => fixSize());
+        ro.observe(mapEl);
+        state.mapResizeObserver = ro;
+      }
+      window.addEventListener("resize", () => setTimeout(fixSize, 100));
+      return;
+    } catch (e) {
+      console.warn("Leaflet init failed, using canvas fallback:", e);
+    }
+  }
+  state.mapFallback = document.getElementById("mapFallback");
+  state.mapFallbackCtx = state.mapFallback.getContext("2d");
+  state.mapFallback.hidden = false;
+  mapEl.style.display = "none";
+  document.getElementById("mapNote").textContent = "Leaflet unavailable (offline) — canvas track view.";
+  drawFallbackTrack();
+}
+function onGpsFix(lat, lon) {
+  if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
+  if (lat === 0 && lon === 0) return;
+  const pt = [lat, lon];
+  state.track.push(pt);
+  if (state.track.length > MAX_TRACK) state.track.shift();
+  document.getElementById("mapNote").textContent = "GPS fix · " + lat.toFixed(6) + ", " + lon.toFixed(6) + " · " + state.track.length + " pts";
+  // Google-Maps-ready coordinate string (lat, lon)
+  state.lastCoord = lat.toFixed(9) + ", " + lon.toFixed(9);
+  document.getElementById("coordText").textContent = state.lastCoord;
+  if (state.map) {
+    state.trackLine.setLatLngs(state.track);
+    state.marker.setLatLng(pt);
+    if (state.track.length === 1) state.map.setView(pt, 15);
+    else state.map.panTo(pt);
+  } else {
+    drawFallbackTrack();
+  }
+}
+function drawFallbackTrack() {
+  const cv = state.mapFallback;
+  if (!cv || !state.mapFallbackCtx) return;
+  const ctx = state.mapFallbackCtx;
+  const dpr = devicePixelRatio;
+  const W = cv.width = cv.offsetWidth * dpr;
+  const H = cv.height = cv.offsetHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = cv.offsetWidth, h = cv.offsetHeight;
+  ctx.fillStyle = "#0b0e14"; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = "#1c2333"; ctx.lineWidth = 1;
+  for (let i = 1; i < 8; i++) {
+    ctx.beginPath(); ctx.moveTo(0, h * i / 8); ctx.lineTo(w, h * i / 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w * i / 8, 0); ctx.lineTo(w * i / 8, h); ctx.stroke();
+  }
+  if (!state.track.length) {
+    ctx.fillStyle = "#8b949e"; ctx.font = "12px sans-serif";
+    ctx.fillText("Waiting for GPS fix…", 12, 20);
+    return;
+  }
+  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+  for (const p of state.track) {
+    if (p[0] < minLat) minLat = p[0]; if (p[0] > maxLat) maxLat = p[0];
+    if (p[1] < minLon) minLon = p[1]; if (p[1] > maxLon) maxLon = p[1];
+  }
+  const pad = 30;
+  const spanLat = (maxLat - minLat) || 0.001, spanLon = (maxLon - minLon) || 0.001;
+  const px = lon => pad + ((lon - minLon) / spanLon) * (w - 2 * pad);
+  const py = lat => h - pad - ((lat - minLat) / spanLat) * (h - 2 * pad);
+  ctx.strokeStyle = "#2f81f7"; ctx.lineWidth = 2; ctx.beginPath();
+  state.track.forEach((p, i) => {
+    const x = px(p[1]), y = py(p[0]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  const last = state.track[state.track.length - 1];
+  ctx.fillStyle = "#f85149";
+  ctx.beginPath(); ctx.arc(px(last[1]), py(last[0]), 4, 0, Math.PI * 2); ctx.fill();
+}
+
+// ===========================================================================
+// 3D attitude — shaded arrow mesh (painter's algorithm)
+// Calibrated: sensor X points tail-ward, sensor Z points belly-up,
+// sensor Y points right-up  →  world-up in model coords = (ay, -ax, az)
+// ===========================================================================
+const ARROW = (() => {
+  const N = 12;
+  const faces = [];
+  const ring = (y, r) => {
+    const a = [];
+    for (let i = 0; i < N; i++) {
+      const t = i / N * Math.PI * 2;
+      a.push([Math.cos(t) * r, y, Math.sin(t) * r]);
+    }
+    return a;
+  };
+  const tip = [0, 1.5, 0];
+  const headBase = ring(0.5, 0.38);
+  const shaftTop = ring(0.5, 0.1);
+  const shaftBot = ring(-1.3, 0.1);
+  const tailRing = ring(-1.3, 0.3);
+  const center = [0, -1.3, 0];
+  const BLUE = [47, 129, 247], SHAFT = [190, 200, 212], ORANGE = [210, 153, 34];
+  // head cone
+  for (let i = 0; i < N; i++) faces.push({ pts: [tip, headBase[i], headBase[(i + 1) % N]], c: BLUE });
+  // head base disc (connects head to shaft)
+  for (let i = 0; i < N; i++) faces.push({ pts: [headBase[i], headBase[(i + 1) % N], shaftTop[(i + 1) % N], shaftTop[i]], c: BLUE });
+  // shaft
+  for (let i = 0; i < N; i++) faces.push({ pts: [shaftTop[i], shaftTop[(i + 1) % N], shaftBot[(i + 1) % N], shaftBot[i]], c: SHAFT });
+  // tail ring side (roll reference)
+  for (let i = 0; i < N; i++) faces.push({ pts: [shaftBot[i], shaftBot[(i + 1) % N], tailRing[(i + 1) % N], tailRing[i]], c: ORANGE });
+  // tail ring cap
+  for (let i = 0; i < N; i++) faces.push({ pts: [tailRing[i], tailRing[(i + 1) % N], center], c: ORANGE });
+  return faces;
+})();
+function rotMatrix(roll, pitch, yaw) {
+  const cr = Math.cos(roll), sr = Math.sin(roll);
+  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const cy = Math.cos(yaw), sy = Math.sin(yaw);
+  return [
+    [cy * cr - sy * sp * sr, -sy * cp, cy * sr + sy * sp * cr],
+    [sy * cr + cy * sp * sr, cy * cp, sy * sr - cy * sp * cr],
+    [-cp * sr, sp, cp * cr],
+  ];
+}
+function applyRot(m, p) {
+  return [
+    m[0][0] * p[0] + m[0][1] * p[1] + m[0][2] * p[2],
+    m[1][0] * p[0] + m[1][1] * p[1] + m[1][2] * p[2],
+    m[2][0] * p[0] + m[2][1] * p[1] + m[2][2] * p[2],
+  ];
+}
+function cross(u, v) {
+  return [
+    u[1] * v[2] - u[2] * v[1],
+    u[2] * v[0] - u[0] * v[2],
+    u[0] * v[1] - u[1] * v[0],
+  ];
+}
+function matMul(A, B) {
+  const C = [[0,0,0],[0,0,0],[0,0,0]];
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      for (let k = 0; k < 3; k++)
+        C[i][j] += A[i][k] * B[k][j];
+  return C;
+}
+function rotFromAccel(ax, ay, az) {
+  // Calibrated mounting: sensor +X = tail, +Y = left, +Z = back
+  // → model +X (right) = -sensor Y, +Y (nose) = -sensor X, +Z (belly) = -sensor Z
+  // The accel reading points toward world-up, so gravity in model coords = (ay, ax, az).
+  let gx = ay, gy = ax, gz = az;
+  const gm = Math.hypot(gx, gy, gz) || 1;
+  gx /= gm; gy /= gm; gz /= gm;
+  const wx = 0, wy = -1, wz = 0; // world gravity (down)
+  const dot = gx * wx + gy * wy + gz * wz;
+  // rotation axis = g × w
+  let axx = gy * wz - gz * wy, axy = gz * wx - gx * wz, axz = gx * wy - gy * wx;
+  const am = Math.hypot(axx, axy, axz);
+  if (am < 1e-6) return null; // upright/inverted — roll unobservable, trust gyro
+  const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+  const ux = axx / am, uy = axy / am, uz = axz / am;
+  const c = Math.cos(angle), s = Math.sin(angle), t = 1 - c;
+  return [
+    [c + ux * ux * t, ux * uy * t - uz * s, ux * uz * t + uy * s],
+    [uy * ux * t + uz * s, c + uy * uy * t, uy * uz * t - ux * s],
+    [uz * ux * t - uy * s, uz * uy * t + ux * s, c + uz * uz * t],
+  ];
+}
+function blendMatrices(A, B, a) {
+  const C = [[0,0,0],[0,0,0],[0,0,0]];
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      C[i][j] = A[i][j] + (B[i][j] - A[i][j]) * a;
+  // orthonormalize: keep nose + belly-up, recompute right-up
+  let n = [C[0][1], C[1][1], C[2][1]];
+  const nm = Math.hypot(n[0], n[1], n[2]) || 1;
+  n = [n[0]/nm, n[1]/nm, n[2]/nm];
+  let b = [C[0][2], C[1][2], C[2][2]];
+  const dot = n[0]*b[0] + n[1]*b[1] + n[2]*b[2];
+  b = [b[0]-dot*n[0], b[1]-dot*n[1], b[2]-dot*n[2]];
+  const bm = Math.hypot(b[0], b[1], b[2]) || 1;
+  b = [b[0]/bm, b[1]/bm, b[2]/bm];
+  const r = [n[1]*b[2]-n[2]*b[1], n[2]*b[0]-n[0]*b[2], n[0]*b[1]-n[1]*b[0]];
+  return [
+    [r[0], n[0], b[0]],
+    [r[1], n[1], b[1]],
+    [r[2], n[2], b[2]],
+  ];
+}
+function eulerFromMatrix(R) {
+  const pitch = Math.asin(Math.max(-1, Math.min(1, R[2][1])));
+  const yaw = Math.atan2(-R[0][1], R[1][1]);
+  const roll = Math.atan2(-R[2][0], R[2][2]);
+  return { roll, pitch, yaw };
+}
+function updateAttitude(f, now) {
+  const gx = f["gyro.x"], gy = f["gyro.y"], gz = f["gyro.z"];
+  const ax = f["accel.x"], ay = f["accel.y"], az = f["accel.z"];
+  const dt = state.att.lastT ? Math.min((now - state.att.lastT) / 1000, 0.1) : 0.016;
+  state.att.lastT = now;
+
+  // gyro integration in the model frame (sensor→model: X→-Y, Y→-X, Z→-Z)
+  if (gx != null && gy != null && gz != null) {
+    state.att.idle = false;
+    const dR = rotMatrix(-gy * dt, -gx * dt, -gz * dt);
+    state.att.R = matMul(state.att.R, dR);
+  }
+
+  // accel correction (complementary filter) — skip when roll is unobservable.
+  // In ARMED mode frames are rare, so the accel correction would fight the
+  // gyro between frames — keep the raw gyro integration instead.
+  const armed = isArmed(state.latest);
+  if (!armed && ax != null && ay != null && az != null) {
+    const mag = Math.hypot(ax, ay, az);
+    if (mag > 0.3) {
+      const target = rotFromAccel(ax, ay, az);
+      if (target) state.att.R = blendMatrices(state.att.R, target, 0.12);
+    }
+  }
+
+  const e = eulerFromMatrix(state.att.R);
+  const d = 180 / Math.PI;
+  document.getElementById("attRoll").textContent = (e.roll * d).toFixed(1) + "°";
+  document.getElementById("attPitch").textContent = (e.pitch * d).toFixed(1) + "°";
+  document.getElementById("attYaw").textContent = (e.yaw * d).toFixed(1) + "°";
+}
+function drawAttitude() {
+  const cv = document.getElementById("att3d");
+  const ctx = cv.getContext("2d");
+  const dpr = devicePixelRatio;
+  const W = cv.width = cv.offsetWidth * dpr;
+  const H = cv.height = cv.offsetHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = cv.offsetWidth, h = cv.offsetHeight;
+  ctx.fillStyle = "#0b0e14"; ctx.fillRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2;
+
+  // idle slow spin so the arrow is visible before telemetry arrives
+  if (state.att.idle) state.att.R = matMul(state.att.R, rotMatrix(0, 0, 0.008));
+
+  // ground grid + horizon
+  ctx.strokeStyle = "#1c2333"; ctx.lineWidth = 1;
+  for (let i = -5; i <= 5; i++) {
+    ctx.beginPath(); ctx.moveTo(cx + i * 26, cy - 70); ctx.lineTo(cx + i * 26, cy + 70); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 130, cy + i * 14); ctx.lineTo(cx + 130, cy + i * 14); ctx.stroke();
+  }
+  ctx.strokeStyle = "#2d333b"; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+
+  const R = state.att.R;
+  const scale = Math.min(w, h) * 0.17;
+  const proj = p => {
+    const r = applyRot(R, p);
+    const s = scale / (1 + r[2] * 0.12);
+    return [cx + r[0] * s, cy - r[1] * s, r[2]];
+  };
+
+  // flame when accelerating (drawn along the tail direction)
+  const g = state.latest.gforce;
+  if (g != null && g > 1.3) {
+    const tailBase = proj([0, -1.3, 0]);
+    const tailRef = proj([0, -2.3, 0]);
+    let dx = tailRef[0] - tailBase[0], dy = tailRef[1] - tailBase[1];
+    const dl = Math.hypot(dx, dy) || 1;
+    dx /= dl; dy /= dl;
+    const len = Math.min(1.6, (g - 1) * 0.9) * scale * (0.9 + Math.random() * 0.25);
+    const flick = 0.5 + Math.random() * 0.5;
+    const px2 = -dy, py2 = dx;
+    const halfW = 8 * flick;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const grad = ctx.createLinearGradient(tailBase[0], tailBase[1], tailBase[0] + dx * len, tailBase[1] + dy * len);
+    grad.addColorStop(0, "rgba(255,180,60,0.95)");
+    grad.addColorStop(0.5, "rgba(255,90,40,0.7)");
+    grad.addColorStop(1, "rgba(255,40,20,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(tailBase[0] + px2 * halfW, tailBase[1] + py2 * halfW);
+    ctx.lineTo(tailBase[0] - px2 * halfW, tailBase[1] - py2 * halfW);
+    ctx.lineTo(tailBase[0] + dx * len, tailBase[1] + dy * len);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // project + shade faces, painter's algorithm (far → near)
+  const light = (() => {
+    const l = [0.4, 0.75, 0.55];
+    const m = Math.hypot(l[0], l[1], l[2]);
+    return [l[0] / m, l[1] / m, l[2] / m];
+  })();
+  const drawn = [];
+  for (const face of ARROW) {
+    const pts = face.pts.map(proj);
+    const a = face.pts[0], b = face.pts[1], c = face.pts[2];
+    const ra = applyRot(R, a), rb = applyRot(R, b), rc = applyRot(R, c);
+    const n = cross([rb[0] - ra[0], rb[1] - ra[1], rb[2] - ra[2]], [rc[0] - ra[0], rc[1] - ra[1], rc[2] - ra[2]]);
+    const nm = Math.hypot(n[0], n[1], n[2]) || 1;
+    const nx = n[0] / nm, ny = n[1] / nm, nz = n[2] / nm;
+    if (nz >= 0) continue; // backface
+    const diff = Math.max(0, nx * light[0] + ny * light[1] + nz * light[2]);
+    const shade = 0.32 + 0.68 * diff;
+    const depth = (pts[0][2] + pts[1][2] + pts[2][2]) / 3;
+    drawn.push({ pts, depth, shade, c: face.c });
+  }
+  drawn.sort((p, q) => q.depth - p.depth);
+  for (const f of drawn) {
+    const r = Math.round(f.c[0] * f.shade), g2 = Math.round(f.c[1] * f.shade), b2 = Math.round(f.c[2] * f.shade);
+    ctx.fillStyle = "rgb(" + r + "," + g2 + "," + b2 + ")";
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(f.pts[0][0], f.pts[0][1]);
+    for (let i = 1; i < f.pts.length; i++) ctx.lineTo(f.pts[i][0], f.pts[i][1]);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // tip marker
+  const tip = proj([0, 1.5, 0]);
+  ctx.fillStyle = "#f85149";
+  ctx.beginPath(); ctx.arc(tip[0], tip[1], 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#8b949e"; ctx.font = "10px sans-serif";
+  ctx.fillText("N", tip[0] + 6, tip[1] - 4);
+
+  if (state.att.idle) {
+    ctx.fillStyle = "rgba(139,148,158,0.8)"; ctx.font = "11px sans-serif";
+    ctx.fillText("Waiting for telemetry…", 12, h - 10);
+  }
+}
+
+// ===========================================================================
 // WebSocket
+// ===========================================================================
 function connectWS() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  const ws = new WebSocket(proto + "://" + location.host + "/ws");
   ws.onopen = () => {
     setPill("wsPill", "server: online", "online");
-    ws.send(JSON.stringify({ type: "serialSource" })); // this tab owns serial
+    ws.send(JSON.stringify({ type: "serialSource" }));
   };
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
     if (m.type === "telemetry") onTelemetry(m.data);
     else if (m.type === "csv") setCsv(m.sessionDir, m.files);
-    else if (m.type === "serialState") if(!m.connected) setPill("wsPill","server: online (serial off)","");
+    else if (m.type === "serialState") if (!m.connected) setPill("wsPill", "server: online (serial off)", "");
   };
   ws.onclose = () => { setPill("wsPill", "server: disconnected", ""); setTimeout(connectWS, 2000); };
   state.ws = ws;
 }
-
 function wsSend(obj) { if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj)); }
 
+// ===========================================================================
 // Serial (Web Serial API)
+// ===========================================================================
 async function connectSerial() {
   if (!("serial" in navigator)) {
     log("error: Web Serial not supported. Use Chrome or Edge.", "error");
@@ -226,11 +1107,10 @@ async function connectSerial() {
     }
     onSerialDisconnected();
   } catch (e) {
-    if (e && e.name === "NotFoundError") return; // user cancelled picker
+    if (e && e.name === "NotFoundError") return;
     log("serial error: " + e, "error");
   }
 }
-
 function onSerialDisconnected() {
   state.serial = null;
   setPill("wsPill", "server: online · serial: disconnected", "");
@@ -239,138 +1119,56 @@ function onSerialDisconnected() {
   log("serial disconnected", "warn");
 }
 
+// ===========================================================================
 // Telemetry handling
+// ===========================================================================
 function onTelemetry(raw) {
   frameCount++;
   const f = flatten(raw);
-  Object.assign(state.latest, f); // accumulate so cards stay sticky
+  Object.assign(state.latest, f);
 
-  log("apid=" + f.apid + " " + JSON.stringify(raw), "");
+  // Derived: barometric altitude above sea level (hypsometric formula)
+  if (f.pressure_hpa != null && !isNaN(Number(f.pressure_hpa))) {
+    f.baro_alt = 44330 * (1 - Math.pow(Number(f.pressure_hpa) / 1013.25, 1 / 5.255));
+  }
+  // Derived: g-force from accel vector
+  if (f["accel.x"] != null && f["accel.y"] != null && f["accel.z"] != null) {
+    f.gforce = Math.hypot(f["accel.x"], f["accel.y"], f["accel.z"]) / 9.81;
+  }
+  if (f.flash_used != null) f.flash_pct = f.flash_used / 2;
 
   if (f.apid === 256 && f.frames !== undefined) {
-    document.getElementById("framePill").textContent = `frames: ${f.frames}`;
+    document.getElementById("framePill").textContent = "frames: " + f.frames;
   }
 
-  const fs = f.flight_state_str || f.flight_state;
-  if (fs !== undefined) {
-    const armed = String(fs).toUpperCase() === "ARMED" || Number(fs) === 3;
-    setPill("statePill", `state: ${fs}`, armed ? "armed" : "");
-  }
+  const fs = stateStr(f);
+  if (fs !== "—") setPill("statePill", "state: " + fs, isArmed(f) ? "armed" : "");
 
   const t = Date.now();
-  const push = (bucket, v) => {
-    if (v == null || isNaN(Number(v))) return;
-    bucket.t.push(t); bucket.s.push(Number(v));
-    if (bucket.t.length > MAX_POINTS) { bucket.t.shift(); bucket.s.shift(); }
-  };
-  push(state.history.alt,  f.gps_alt);
-  push(state.history.pres, f.pressure_hpa);
-  push(state.history.rssi, f.rssi);
-  push(state.history.snr,  f.snr);
-  push(state.history.accx, f["accel.x"]);
-  push(state.history.accy, f["accel.y"]);
-  push(state.history.accz, f["accel.z"]);
-  push(state.history.gyx,  f["gyro.x"]);
-  push(state.history.gyy,  f["gyro.y"]);
-  push(state.history.gyz,  f["gyro.z"]);
-
-  renderCards();
-  drawCharts();
-}
-
-// Cards
-const CARD_DEFS = [
-  ["Flight state",     f => f.flight_state_str ?? f.flight_state],
-  ["Core temp",        f => temp(f.core_temp_c), "°C"],
-  ["Bat voltage",      f => num(f.bat_voltage,3), "V"],
-  ["Pressure",         f => num(f.pressure_hpa), "hPa"],
-  ["Ambient temp",     f => temp(f.temperature_c), "°C"],
-  ["GPS alt",          f => num(f.gps_alt), "m"],
-  ["GPS sats",         f => f.sats],
-  ["GPS HDOP",         f => num(f.hdop)],
-  ["RSSI",             f => num(f.rssi), "dBm"],
-  ["SNR",              f => num(f.snr), "dB"],
-  ["Accel X",          f => num(f["accel.x"]), "m/s²"],
-  ["Accel Y",          f => num(f["accel.y"]), "m/s²"],
-  ["Accel Z",          f => num(f["accel.z"]), "m/s²"],
-  ["Gyro X",           f => num(f["gyro.x"]), "°/s"],
-  ["Gyro Y",           f => num(f["gyro.y"]), "°/s"],
-  ["Gyro Z",           f => num(f["gyro.z"]), "°/s"],
-];
-function num(v, d=2) { if (v==null||isNaN(Number(v))) return "—"; return Number(v).toFixed(d); }
-function temp(v) { if (v==null||isNaN(Number(v))) return "—"; return Number(v).toFixed(1); }
-
-function renderCards() {
-  const grid = document.getElementById("cards");
-  grid.innerHTML = "";
-  const l = state.latest;  // accumulated across apids (sticky)
-  for (const [label, getter, unit] of CARD_DEFS) {
-    const val = getter(l);
-    const c = document.createElement("div");
-    c.className = "card";
-    c.innerHTML = `<div class="label">${label}</div><div class="row"><span class="value">${val}</span>${unit?`<span class="unit">${unit}</span>`:""}</div>`;
-    grid.appendChild(c);
+  // per-apid last packet time (ignore apid 256 status frames)
+  if (f.apid != null && Number(f.apid) !== 256) {
+    state.lastPacket[Number(f.apid)] = { t, label: "apid " + f.apid };
   }
-}
 
-// Canvas charts
-const chartDefs = [
-  { id: "chAlt",  series: [["alt","#2f81f7"],["pres","#d29922"]] },
-  { id: "chRadio",series: [["rssi","#2f81f7"],["snr","#3fb950"]] },
-  { id: "chAccel",series: [["accx","#2f81f7"],["accy","#3fb950"],["accz","#f85149"]] },
-  { id: "chGyro", series: [["gyx","#2f81f7"],["gyy","#3fb950"],["gyz","#f85149"]] },
-];
-function drawCharts() {
-  const H = state.history;
-  for (const def of chartDefs) {
-    const canvas = document.getElementById(def.id);
-    const ctx = canvas.getContext("2d");
-    const W = canvas.width = canvas.offsetWidth * devicePixelRatio;
-    const Hpx = canvas.height = canvas.offsetHeight * devicePixelRatio;
-    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-    ctx.clearRect(0,0,W/devicePixelRatio,Hpx/devicePixelRatio);
-    const w = canvas.width / devicePixelRatio, h = canvas.height / devicePixelRatio;
-
-    // gather all series sample ranges to compute shared y-scale
-    let min = Infinity, max = -Infinity, tMin=Infinity, tMax=-Infinity;
-    for (const [key] of def.series) {
-      const b = H[key];
-      if (!b || !b.t || !b.t.length) continue;
-      for (const v of b.s) { if (v<min)min=v; if(v>max)max=v; }
-      tMin = Math.min(tMin, b.t[0]); tMax = Math.max(tMax, b.t[b.t.length-1]);
-    }
-    if (min === Infinity) {
-      // grid
-      ctx.strokeStyle = "#2d333b"; ctx.lineWidth=1;
-      for (let i=1;i<5;i++){ ctx.beginPath(); ctx.moveTo(0,h*i/5); ctx.lineTo(w,h*i/5); ctx.stroke(); }
-      continue;
-    }
-    if (min===max){min-=1;max+=1;}
-    const pad=6;
-    const y=(v)=>(h-pad) - ((v-min)/(max-min))*(h-2*pad) + pad/2;
-    const x=(t)=>((t-tMin)/(tMax-tMin||1))*w;
-
-    // grid + labels
-    ctx.strokeStyle="#2d333b";ctx.lineWidth=1;
-    for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(0,h*i/4);ctx.lineTo(w,h*i/4);ctx.stroke();
-      const v=max-(i*(max-min)/4);
-      ctx.fillStyle="#8b949e";ctx.font="10px sans-serif";
-      ctx.fillText(v.toFixed(1),3,h*i/4-3);
-    }
-    ctx.strokeStyle="#2d333b";ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,h);ctx.stroke();
-
-    for (const [key,color] of def.series) {
-      const b = H[key];
-      if (!b || !b.t || !b.t.length) continue;
-      ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
-      b.t.forEach((t,i)=>{ const px=x(t),py=y(b.s[i]); if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py); });
-      ctx.stroke();
-    }
+  for (const key of Object.keys(state.history)) {
+    const v = f[key];
+    if (v == null || isNaN(Number(v))) continue;
+    const b = state.history[key];
+    b.t.push(t); b.s.push(Number(v));
+    if (b.t.length > MAX_POINTS) { b.t.shift(); b.s.shift(); }
   }
+
+  if (f.lat != null && f.lon != null) onGpsFix(Number(f.lat), Number(f.lon));
+  updateAttitude(f, t);
+
+  renderTelemetry();
+  queueDraw();
 }
 
+// ===========================================================================
 // Misc UI helpers
-function setPill(id, text, cls) { const el=document.getElementById(id); el.textContent=text; el.className="status-pill "+(cls||""); }
+// ===========================================================================
+function setPill(id, text, cls) { const el = document.getElementById(id); el.textContent = text; el.className = "status-pill " + (cls || ""); }
 function setCsv(sessionDir, files) {
   const el = document.getElementById("csvPath");
   el.textContent = "Logs: " + sessionDir;
@@ -380,15 +1178,28 @@ function log(text, level) {
   const el = document.getElementById("log");
   const t = new Date().toLocaleTimeString();
   const line = document.createElement("div");
-  line.className = "lvl-" + (level||"");
-  line.textContent = `[${t}] ${text}`;
+  line.className = "lvl-" + (level || "");
+  line.textContent = "[" + t + "] " + text;
   el.appendChild(line);
   while (el.childElementCount > 200) el.removeChild(el.firstChild);
   el.scrollTop = el.scrollHeight;
 }
 
+// ===========================================================================
+// Init
+// ===========================================================================
+document.getElementById("icMap").innerHTML = icon("map");
+document.getElementById("icAtt").innerHTML = icon("gyro");
+document.getElementById("icTele").innerHTML = icon("tele");
+document.getElementById("icCharts").innerHTML = icon("chart");
+
+buildSections();
+buildCharts();
+initMap();
+drawAttitude();
+
 document.getElementById("connectBtn").addEventListener("click", () => {
-  if (state.serial) { try{ state.serial.close(); }catch{} onSerialDisconnected(); }
+  if (state.serial) { try { state.serial.close(); } catch (e) {} onSerialDisconnected(); }
   else connectSerial();
 });
 document.getElementById("recBtn").addEventListener("click", (e) => {
@@ -398,7 +1209,57 @@ document.getElementById("recBtn").addEventListener("click", (e) => {
   log(state.rec ? "CSV recording enabled" : "CSV recording paused", "warn");
 });
 
-window.addEventListener("resize", drawCharts);
+// Copy coordinates (Google Maps format: "lat, lon")
+const copyCoordBtn = document.getElementById("copyCoordBtn");
+copyCoordBtn.addEventListener("click", async () => {
+  const text = state.lastCoord;
+  if (!text) { log("no GPS fix yet — nothing to copy", "warn"); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    copyCoordBtn.textContent = "✓ Copied";
+    setTimeout(() => { copyCoordBtn.textContent = "Copy"; }, 1500);
+  } catch (e) {
+    // fallback for non-secure contexts
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); copyCoordBtn.textContent = "✓ Copied"; } catch (e2) { log("copy failed: " + e2, "error"); }
+    document.body.removeChild(ta);
+    setTimeout(() => { copyCoordBtn.textContent = "Copy"; }, 1500);
+  }
+});
+
+// Light/dark theme toggle (persisted)
+const themeBtn = document.getElementById("themeBtn");
+function applyTheme(light) {
+  document.body.classList.toggle("light", light);
+  themeBtn.textContent = light ? "◐ Light" : "◐ Dark";
+  try { localStorage.setItem("gs-theme", light ? "light" : "dark"); } catch (e) {}
+  // redraw canvases with new colors
+  drawCharts();
+  drawAttitude();
+  drawFallbackTrack();
+}
+themeBtn.addEventListener("click", () => {
+  applyTheme(!document.body.classList.contains("light"));
+});
+try {
+  if (localStorage.getItem("gs-theme") === "light") applyTheme(true);
+} catch (e) {}
+
+// refresh per-apid packet ages every 500ms so the Link section stays live
+setInterval(() => {
+  if (Object.keys(state.lastPacket).length) renderTelemetry();
+}, 500);
+
+window.addEventListener("resize", () => {
+  drawCharts();
+  drawAttitude();
+  drawFallbackTrack();
+  if (state.map) setTimeout(() => state.map.invalidateSize(), 100);
+});
+
 connectWS();
 log("connected — click 'Connect serial' and pick your port", "warn");
 log("Tip: the connected tab owns serial; a second tab can only view.", "");

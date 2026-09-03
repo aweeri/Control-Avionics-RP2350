@@ -1,0 +1,17 @@
+{
+  "name": "rapidfish-groundstation",
+  "version": "1.0.0",
+  "description": "Browser-based telemetry visualizer and CSV logger for RapidFish serial data",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot server.ts",
+    "start": "bun server.ts",
+    "generate": "bun scripts/generate-ui.ts",
+    "build": "bun scripts/generate-ui.ts && bun build --compile --minify --outfile dist/RapidFishGroundStation.exe server.ts",
+    "bundle:macos": "bun scripts/generate-ui.ts && bun build --compile --minify --target=bun-darwin-arm64 --outfile dist/RapidFishGroundStation-mac server.ts",
+    "bundle:win": "bun scripts/generate-ui.ts && bun build --compile --minify --target=bun-windows-x64 --outfile dist/RapidFishGroundStation.exe server.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RapidFish GroundStation</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2333;
+    --border: #2d333b;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #2f81f7;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 12px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .spacer { flex: 1; }
+  .status-pill {
+    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    border: 1px solid var(--border); background: var(--panel2);
+  }
+  .status-pill.online { color: var(--green); border-color: var(--green); }
+  .status-pill.armed { color: var(--red); border-color: var(--red); }
+
+  button {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 14px; font-size: 13px; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  main { padding: 16px; max-width: 1500px; margin: 0 auto; }
+  .grid {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .card .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .card .unit { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 3px; }
+  .card .row { display: flex; justify-content: space-between; align-items: baseline; }
+
+  .section-title {
+    margin: 22px 0 10px; font-size: 14px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .charts { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
+  canvas {
+    width: 100%; height: 220px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; display: block;
+  }
+  .chart-wrap { position: relative; }
+  .chart-wrap .title {
+    position: absolute; top: 8px; left: 12px; font-size: 12px; color: var(--muted);
+    background: rgba(0,0,0,.4); padding: 2px 8px; border-radius: 4px;
+  }
+
+  #log {
+    background: #010409; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 12px; height: 200px; overflow-y: auto; white-space: pre-wrap;
+    color: var(--muted);
+  }
+  #log .lvl-warn { color: var(--orange); }
+  #log .lvl-error { color: var(--red); }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .csv-path { font-family: monospace; font-size: 12px; color: var(--muted); }
+  details { margin-top: 20px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: .05em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RapidFish GroundStation</h1>
+  <span class="sub" id="csvPath">CSV: …</span>
+  <div class="spacer"></div>
+  <span class="status-pill" id="wsPill">● server</span>
+  <span class="status-pill" id="statePill">state: —</span>
+  <span class="status-pill" id="framePill">—</span>
+  <button id="recBtn" class="primary">● Rec</button>
+  <button id="connectBtn">Connect serial</button>
+</header>
+
+<main>
+  <div class="section-title">Live telemetry</div>
+  <div class="grid" id="cards"></div>
+
+  <div class="section-title">Charts</div>
+  <div class="charts">
+    <div class="chart-wrap"><span class="title">Altitude / Pressure</span><canvas id="chAlt"></canvas></div>
+    <div class="chart-wrap"><span class="title">RSSI / SNR</span><canvas id="chRadio"></canvas></div>
+    <div class="chart-wrap"><span class="title">Acceleration (m/s²)</span><canvas id="chAccel"></canvas></div>
+    <div class="chart-wrap"><span class="title">Gyro (°/s)</span><canvas id="chGyro"></canvas></div>
+  </div>
+
+  <details>
+    <summary>Raw frames / event log</summary>
+    <div id="log"></div>
+  </details>
+</main>
+
+<script>
+"use strict";
+
+// State
+const state = {
+  ws: null,
+  serial: null,
+  reader: null,
+  rec: true,
+  latest: {},          // merged across apids so cards don't blank
+  history: {           // time-series per chart
+    alt:   { t: [], s: [] },
+    pres:  { t: [], s: [] },
+    rssi:  { t: [], s: [] },
+    snr:   { t: [], s: [] },
+    accx:  { t: [], s: [] }, accy: { t: [], s: [] }, accz: { t: [], s: [] },
+    gyx:   { t: [], s: [] }, gyy:  { t: [], s: [] }, gyz: { t: [], s: [] },
+  },
+};
+const MAX_POINTS = 600;
+let lastApid0 = null;
+let frameCount = 0;
+
+function flatten(o, prefix="") {
+  const out = {};
+  for (const [k,v] of Object.entries(o)) {
+    const key = prefix ? `${prefix}.${k}` : k;
+    if (v && typeof v === "object" && !Array.isArray(v)) Object.assign(out, flatten(v,key));
+    else if (Array.isArray(v)) v.forEach((it,i)=>{ out[`${key}[${i}]`]=it; });
+    else out[key]=v;
+  }
+  return out;
+}
+
+// WebSocket
+function connectWS() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => {
+    setPill("wsPill", "server: online", "online");
+    ws.send(JSON.stringify({ type: "serialSource" })); // this tab owns serial
+  };
+  ws.onmessage = (ev) => {
+    let m; try { m = JSON.parse(ev.data); } catch { return; }
+    if (m.type === "telemetry") onTelemetry(m.data);
+    else if (m.type === "csv") setCsv(m.sessionDir, m.files);
+    else if (m.type === "serialState") if(!m.connected) setPill("wsPill","server: online (serial off)","");
+  };
+  ws.onclose = () => { setPill("wsPill", "server: disconnected", ""); setTimeout(connectWS, 2000); };
+  state.ws = ws;
+}
+
+function wsSend(obj) { if (state.ws && state.ws.readyState === 1) state.ws.send(JSON.stringify(obj)); }
+
+// Serial (Web Serial API)
+async function connectSerial() {
+  if (!("serial" in navigator)) {
+    log("error: Web Serial not supported. Use Chrome or Edge.", "error");
+    return;
+  }
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    state.serial = port;
+    setPill("wsPill", "server: online · serial: connected", "online");
+    document.getElementById("connectBtn").textContent = "Disconnect serial";
+
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (port.readable) {
+      const reader = port.readable.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, idx).trim();
+            buf = buf.slice(idx + 1);
+            if (line) wsSend({ type: "line", data: line });
+          }
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") break;
+        log("serial read error: " + e, "error");
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    onSerialDisconnected();
+  } catch (e) {
+    if (e && e.name === "NotFoundError") return; // user cancelled picker
+    log("serial error: " + e, "error");
+  }
+}
+
+function onSerialDisconnected() {
+  state.serial = null;
+  setPill("wsPill", "server: online · serial: disconnected", "");
+  document.getElementById("connectBtn").textContent = "Connect serial";
+  wsSend({ type: "serialDisconnected" });
+  log("serial disconnected", "warn");
+}
+
+// Telemetry handling
+function onTelemetry(raw) {
+  frameCount++;
+  const f = flatten(raw);
+  Object.assign(state.latest, f); // accumulate so cards stay sticky
+  log("apid=" + f.apid + " " + JSON.stringify(raw), "");
+
+  if (f.apid === 256 && f.frames !== undefined) {
+    document.getElementById("framePill").textContent = `frames: ${f.frames}`;
+  }
+
+  const fs = f.flight_state_str || f.flight_state;
+  if (fs !== undefined) {
+    const armed = String(fs).toUpperCase() === "ARMED" || Number(fs) === 3;
+    setPill("statePill", `state: ${fs}`, armed ? "armed" : "");
+  }
+
+  const t = Date.now();
+  const push = (bucket, v) => {
+    if (v == null || isNaN(Number(v))) return;
+    bucket.t.push(t); bucket.s.push(Number(v));
+    if (bucket.t.length > MAX_POINTS) { bucket.t.shift(); bucket.s.shift(); }
+  };
+  push(state.history.alt,  f.gps_alt);
+  push(state.history.pres, f.pressure_hpa);
+  push(state.history.rssi, f.rssi);
+  push(state.history.snr,  f.snr);
+  push(state.history.accx, f["accel.x"]);
+  push(state.history.accy, f["accel.y"]);
+  push(state.history.accz, f["accel.z"]);
+  push(state.history.gyx,  f["gyro.x"]);
+  push(state.history.gyy,  f["gyro.y"]);
+  push(state.history.gyz,  f["gyro.z"]);
+
+  renderCards();
+  drawCharts();
+}
+
+// Cards
+const CARD_DEFS = [
+  ["Flight state",     f => f.flight_state_str ?? f.flight_state],
+  ["Core temp",        f => temp(f.core_temp_c), "°C"],
+  ["Bat voltage",      f => num(f.bat_voltage,3), "V"],
+  ["Pressure",         f => num(f.pressure_hpa), "hPa"],
+  ["Ambient temp",     f => temp(f.temperature_c), "°C"],
+  ["GPS alt",          f => num(f.gps_alt), "m"],
+  ["GPS sats",         f => f.sats],
+  ["GPS HDOP",         f => num(f.hdop)],
+  ["RSSI",             f => num(f.rssi), "dBm"],
+  ["SNR",              f => num(f.snr), "dB"],
+  ["Accel X",          f => num(f["accel.x"]), "m/s²"],
+  ["Accel Y",          f => num(f["accel.y"]), "m/s²"],
+  ["Accel Z",          f => num(f["accel.z"]), "m/s²"],
+  ["Gyro X",           f => num(f["gyro.x"]), "°/s"],
+  ["Gyro Y",           f => num(f["gyro.y"]), "°/s"],
+  ["Gyro Z",           f => num(f["gyro.z"]), "°/s"],
+];
+function num(v, d=2) { if (v==null||isNaN(Number(v))) return "—"; return Number(v).toFixed(d); }
+function temp(v) { if (v==null||isNaN(Number(v))) return "—"; return Number(v).toFixed(1); }
+
+function renderCards() {
+  const grid = document.getElementById("cards");
+  grid.innerHTML = "";
+  const l = state.latest;  // accumulated across apids (sticky)
+  for (const [label, getter, unit] of CARD_DEFS) {
+    const val = getter(l);
+    const c = document.createElement("div");
+    c.className = "card";
+    c.innerHTML = `<div class="label">${label}</div><div class="row"><span class="value">${val}</span>${unit?`<span class="unit">${unit}</span>`:""}</div>`;
+    grid.appendChild(c);
+  }
+}
+
+// Canvas charts
+const chartDefs = [
+  { id: "chAlt",  series: [["alt","#2f81f7"],["pres","#d29922"]] },
+  { id: "chRadio",series: [["rssi","#2f81f7"],["snr","#3fb950"]] },
+  { id: "chAccel",series: [["accx","#2f81f7"],["accy","#3fb950"],["accz","#f85149"]] },
+  { id: "chGyro", series: [["gyx","#2f81f7"],["gyy","#3fb950"],["gyz","#f85149"]] },
+];
+function drawCharts() {
+  const H = state.history;
+  for (const def of chartDefs) {
+    const canvas = document.getElementById(def.id);
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width = canvas.offsetWidth * devicePixelRatio;
+    const Hpx = canvas.height = canvas.offsetHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    ctx.clearRect(0,0,W/devicePixelRatio,Hpx/devicePixelRatio);
+    const w = canvas.width / devicePixelRatio, h = canvas.height / devicePixelRatio;
+
+    // gather all series sample ranges to compute shared y-scale
+    let min = Infinity, max = -Infinity, tMin=Infinity, tMax=-Infinity;
+    for (const [key] of def.series) {
+      const b = H[key];
+      if (!b || !b.t || !b.t.length) continue;
+      for (const v of b.s) { if (v<min)min=v; if(v>max)max=v; }
+      tMin = Math.min(tMin, b.t[0]); tMax = Math.max(tMax, b.t[b.t.length-1]);
+    }
+    if (min === Infinity) {
+      // grid
+      ctx.strokeStyle = "#2d333b"; ctx.lineWidth=1;
+      for (let i=1;i<5;i++){ ctx.beginPath(); ctx.moveTo(0,h*i/5); ctx.lineTo(w,h*i/5); ctx.stroke(); }
+      continue;
+    }
+    if (min===max){min-=1;max+=1;}
+    const pad=6;
+    const y=(v)=>(h-pad) - ((v-min)/(max-min))*(h-2*pad) + pad/2;
+    const x=(t)=>((t-tMin)/(tMax-tMin||1))*w;
+
+    // grid + labels
+    ctx.strokeStyle="#2d333b";ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(0,h*i/4);ctx.lineTo(w,h*i/4);ctx.stroke();
+      const v=max-(i*(max-min)/4);
+      ctx.fillStyle="#8b949e";ctx.font="10px sans-serif";
+      ctx.fillText(v.toFixed(1),3,h*i/4-3);
+    }
+    ctx.strokeStyle="#2d333b";ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,h);ctx.stroke();
+
+    for (const [key,color] of def.series) {
+      const b = H[key];
+      if (!b || !b.t || !b.t.length) continue;
+      ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+      b.t.forEach((t,i)=>{ const px=x(t),py=y(b.s[i]); if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py); });
+      ctx.stroke();
+    }
+  }
+}
+
+// Misc UI helpers
+function setPill(id, text, cls) { const el=document.getElementById(id); el.textContent=text; el.className="status-pill "+(cls||""); }
+function setCsv(sessionDir, files) {
+  const el = document.getElementById("csvPath");
+  el.textContent = "Logs: " + sessionDir;
+  if (Array.isArray(files) && files.length) el.textContent += " (" + files.length + " apid files)";
+}
+function log(text, level) {
+  const el = document.getElementById("log");
+  const t = new Date().toLocaleTimeString();
+  const line = document.createElement("div");
+  line.className = "lvl-" + (level||"");
+  line.textContent = `[${t}] ${text}`;
+  el.appendChild(line);
+  while (el.childElementCount > 200) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+document.getElementById("connectBtn").addEventListener("click", () => {
+  if (state.serial) { try{ state.serial.close(); }catch{} onSerialDisconnected(); }
+  else connectSerial();
+});
+document.getElementById("recBtn").addEventListener("click", (e) => {
+  state.rec = !state.rec;
+  e.target.classList.toggle("primary", state.rec);
+  wsSend({ type: "rec", data: state.rec });
+  log(state.rec ? "CSV recording enabled" : "CSV recording paused", "warn");
+});
+
+window.addEventListener("resize", drawCharts);
+connectWS();
+log("connected — click 'Connect serial' and pick your port", "warn");
+log("Tip: the connected tab owns serial; a second tab can only view.", "");
+</script>
+</body>
+</html>

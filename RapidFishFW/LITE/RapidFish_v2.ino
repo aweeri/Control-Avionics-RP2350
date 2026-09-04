@@ -52,8 +52,6 @@
 // =============================================================================
 // [1] CONFIGURATION — [USER] Modify these values for your rocket
 // =============================================================================
-// Everything in this section is safe to change. Read the comments carefully.
-// =============================================================================
 
 // ---------------------------------------------------------------------------
 // 1a. Recovery Channel Type — [USER] Choose SERVO or PYRO per channel
@@ -147,6 +145,22 @@ const bool RADIO_ENABLED = true;                    // [USER] Set false to disab
 #define RADIO_ARMED_INTERVAL_MS        1000         // [USER] ARMED beacon interval (ms)
 #define RADIO_GROUND_CORE_INTERVAL_MS 10000         // [USER] Ground core frame interval (ms)
 #define RADIO_GROUND_GPS_INTERVAL_MS   1000         // [USER] Ground GPS frame interval (ms)
+#define RADIO_FLIGHT_GPS_GUARANTEE_MS  1000         // [USER] Flight GPS hard floor (~1 Hz) regardless of GPS update cadence
+// GPS transmits are gated to land mid-inter-core gap, derived from the cadence constants.
+#define RADIO_GPS_TO_CORE_GAP_MS_MIN  15                      // [INTERNAL] floor (ms)
+#define RADIO_GPS_TO_CORE_GAP_MS_CAP  (RADIO_FLIGHT_GPS_GUARANTEE_MS / 2) // [INTERNAL] must stay < 1 Hz guarantee
+#define RADIO_GPS_TO_CORE_GAP_MS \
+    ( ((RADIO_TX_INTERVAL_MS / 2) > RADIO_GPS_TO_CORE_GAP_MS_MIN) \
+        ? (((RADIO_TX_INTERVAL_MS / 2) < RADIO_GPS_TO_CORE_GAP_MS_CAP) \
+            ? (RADIO_TX_INTERVAL_MS / 2) \
+            : RADIO_GPS_TO_CORE_GAP_MS_CAP) \
+        : RADIO_GPS_TO_CORE_GAP_MS_MIN )
+// Ground GPS: land mid-gap after the last ground core frame.
+#define RADIO_GROUND_GPS_CORE_GAP_MS_MIN  20                 // [INTERNAL] floor (ms)
+#define RADIO_GROUND_GPS_CORE_GAP_MS \
+    ( ((RADIO_GROUND_GPS_INTERVAL_MS / 2) > RADIO_GROUND_GPS_CORE_GAP_MS_MIN) \
+        ? (RADIO_GROUND_GPS_INTERVAL_MS / 2) \
+        : RADIO_GROUND_GPS_CORE_GAP_MS_MIN )
 #define RADIO_POWER_ARMED_DBM          10.0f        // [USER] ARMED TX power (dBm)
 #define RADIO_POWER_HIGH_DBM           22.0f        // [USER] Flight + ground TX power (dBm)
 #define TESTBENCH_RADIO_POWER_DBM      3.0f         // [USER] Testbench TX power (dBm)
@@ -170,7 +184,7 @@ const uint32_t FLIGHT_DATA_FLASH_SIZE = 14 * 1024 * 1024; // [FIXED] 14 MB log c
 const uint32_t SYNC_WORD = 0x1ACFFC1D; // [INTERNAL] Sync word for log frames (32-bit)
 
 // =============================================================================
-// [2] INTERNAL DEFINITIONS — [FIXED] Do not modify below this line
+// [2] INTERNAL DEFINITIONS — [INTERNAL] Do not modify below this line
 // =============================================================================
 
 // --- Recovery type enum ---
@@ -244,7 +258,10 @@ SparkFun_LSM6DSV16X_SPI lsm_dsv;
 bool use_dsox = false;
 Adafruit_BMP3XX bmp;
 
-LR2021 radio = new Module(RADIO_CS_PIN, RADIO_IRQ_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN, SPI1);
+// RadioLib re-clocks SPI each transaction; pass explicit SPISettings to override.
+#define RADIO_SPI_CLOCK_HZ 8000000
+LR2021 radio = new Module(RADIO_CS_PIN, RADIO_IRQ_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN, SPI1,
+                          SPISettings(RADIO_SPI_CLOCK_HZ, MSBFIRST, SPI_MODE0));
 bool radio_ready = false;
 
 // Interrupt-driven TX state
@@ -252,17 +269,31 @@ static uint8_t radio_tx_buf[32];
 static size_t  radio_tx_len = 0;
 volatile bool  radio_tx_busy = false;
 volatile bool  radio_tx_done = false;
+static volatile uint32_t radio_tx_busy_start_ms = 0;
+// Watchdog uses wall-clock time_us_64() because flash writes freeze millis().
+static volatile uint64_t radio_tx_busy_start_us = 0;
+#define RADIO_TX_BUSY_TIMEOUT_MS 500
+#define RADIO_TX_BUSY_TIMEOUT_US (RADIO_TX_BUSY_TIMEOUT_MS * 1000u)
+
+// Radio TX drop / backpressure diagnostics
+uint32_t radio_tx_attempted = 0;
+uint32_t radio_tx_dropped   = 0;
+
+// Rolling 10-second TX success diagnostic, windowed on true time_us_64().
+static uint32_t win_ok       = 0;
+static uint32_t win_dropped  = 0;
+static uint64_t win_start_us = 0;
 
 // Radio TX cadence timers
 uint32_t last_radio_tx      = 0;
 uint32_t last_radio_core_tx = 0;
 uint32_t last_gps_tx        = 0;
 uint32_t last_gps_tx_cnt    = 0;
+uint32_t last_gps_flight_tx = 0;
 volatile bool beacon_is_gps = false;
 
 // Cached radio output power
 static float radio_current_power_dbm = -999.0f;
-static bool radio_power_override = false;
 
 // --- GPS ---
 TinyGPSPlus tinyGPS;
@@ -277,7 +308,7 @@ volatile uint32_t gps_bad_checksum    = 0;
 
 // --- Flash memory ---
 uint32_t flight_flash_offset = FIRMWARE_RESERVED_SIZE;
-uint32_t current_flash_addr = 0;
+volatile uint32_t current_flash_addr = 0;
 const int FRAMES_PER_PAGE = FLASH_PAGE_SIZE / sizeof(union LogFrame);
 union LogFrame page_buffer[8];
 int buffer_index = 0;
@@ -372,7 +403,7 @@ void handleSerialCommands();
 void updateBuzzer();
 void startBuzzerPattern(BuzzerPattern p);
 void radioInit();
-void radioTransmitFrame();
+bool radioTransmitFrame();
 void radioSetFrequency(float mhz);
 void radioSetPower(float dbm);
 bool radioTransmitGpsFrame();
@@ -414,7 +445,7 @@ void setup() {
         servo1_attached = true;
         servo1.write(SERVO1_LOCKED_ANGLE);
         pinMode(PYRO1_PIN, OUTPUT);
-        digitalWrite(PYRO1_PIN, LOW); // ensure pyro pin is safe
+        digitalWrite(PYRO1_PIN, LOW);
     } else {
         pinMode(PYRO1_PIN, OUTPUT);
         digitalWrite(PYRO1_PIN, LOW);
@@ -502,25 +533,32 @@ void setup() {
 
 // --- Write any partially-filled page buffer to flash, then reset it ---
 void flushPageBuffer() {
-    if (buffer_index == 0) return;
+    // Halt core 1 (and mask IRQs) before touching shared buffers so no
+    // concurrent write into page_buffer / buffer_index can occur.
+    rp2040.idleOtherCore();
+    uint32_t ints = save_and_disable_interrupts();
 
-    // Pad the unused tail with erase state so a whole-page program only
-    // writes the used frames (sub-page wear is acceptable on exit).
+    if (buffer_index == 0) {
+        restore_interrupts(ints);
+        rp2040.resumeOtherCore();
+        return;
+    }
+
+    // Pad the unused tail with 0xFF (erase state).
     uint32_t used_bytes = (uint32_t)buffer_index * sizeof(union LogFrame);
     memset((uint8_t*)page_buffer + used_bytes, 0xFF, FLASH_PAGE_SIZE - used_bytes);
 
     if (current_flash_addr + FLASH_PAGE_SIZE <= FLIGHT_DATA_FLASH_SIZE) {
-        rp2040.idleOtherCore();
-        uint32_t ints = save_and_disable_interrupts();
         flash_range_program(flight_flash_offset + current_flash_addr,
                             (uint8_t*)page_buffer, FLASH_PAGE_SIZE);
-        restore_interrupts(ints);
-        rp2040.resumeOtherCore();
         current_flash_addr += FLASH_PAGE_SIZE;
     }
 
     buffer_index = 0;
     memset(page_buffer, 0, sizeof(page_buffer));
+
+    restore_interrupts(ints);
+    rp2040.resumeOtherCore();
 }
 
 void loop() {
@@ -579,10 +617,35 @@ void loop() {
     if (radio_ready) {
         uint16_t now_cnt = (uint16_t)gps_snapshot.update_cnt;
 
-        if (radio_tx_busy && radio_tx_done) {
-            radio.finishTransmit();
-            radio_tx_busy = false;
-            radio_tx_done = false;
+        bool clear_busy = false;
+        if (radio_tx_busy) {
+            if (radio_tx_done) {
+                radio.finishTransmit();
+                clear_busy = true;
+            } else if (time_us_64() - radio_tx_busy_start_us >= RADIO_TX_BUSY_TIMEOUT_US) {
+                // Lost DIO5 IRQ: watchdog uses time_us_64(), immune to flash-write millis() freeze.
+                radio.finishTransmit();
+                clear_busy = true;
+                static uint32_t last_wd_print = 0;
+                unsigned long wd_now = millis();
+                if (wd_now - last_wd_print > 1000) {
+                    last_wd_print = wd_now;
+                    // Diagnostics: us vs millis() divergence during flash writes.
+                    uint64_t busy_age_us  = time_us_64() - radio_tx_busy_start_us;
+                    uint32_t busy_age_ms  = (uint32_t)(busy_age_us / 1000u);
+                    Serial.printf("[LR2021] TX busy watchdog: recovered stuck transmit "
+                                  "(us-age=%lums millis-age=%lums radio_tx_done=%d)\n",
+                                  (unsigned long)busy_age_ms,
+                                  (unsigned long)(wd_now - radio_tx_busy_start_ms),
+                                  (int)radio_tx_done);
+                }
+            }
+            if (clear_busy) {
+                radio_tx_busy = false;
+                radio_tx_done = false;
+                radio_tx_busy_start_ms = 0;
+                radio_tx_busy_start_us = 0;
+            }
         }
 
         radioApplyStatePower();
@@ -591,32 +654,50 @@ void loop() {
             // DISARMED: no radio
         } else if (current_state == STATE_ARMED) {
             if (now - last_radio_tx >= RADIO_ARMED_INTERVAL_MS) {
-                last_radio_tx = now;
                 if (beacon_is_gps) {
-                    radioTransmitGpsFrame();
+                    if (radioTransmitGpsFrame()) {
+                        last_radio_tx = now;
+                        beacon_is_gps = !beacon_is_gps;
+                    }
                 } else {
-                    radioTransmitFrame();
+                    if (radioTransmitFrame()) {
+                        last_radio_tx = now;
+                        beacon_is_gps = !beacon_is_gps;
+                    }
                 }
-                beacon_is_gps = !beacon_is_gps;
             }
         } else if (current_state >= STATE_ACCELERATING && current_state <= STATE_CHUTE) {
             if (now - last_radio_core_tx >= RADIO_TX_INTERVAL_MS) {
-                last_radio_core_tx = now;
-                radioTransmitFrame();
+                if (radioTransmitFrame()) {
+                    last_radio_core_tx = now;
+                }
             }
-            if (now_cnt != last_gps_tx_cnt) {
-                if (radioTransmitGpsFrame()) {
-                    last_gps_tx_cnt = now_cnt;
+            // Gate GPS behind RADIO_GPS_TO_CORE_GAP_MS to land mid inter-core gap.
+            if (now - last_radio_core_tx >= RADIO_GPS_TO_CORE_GAP_MS) {
+                // Normal path: fresh updates; watchdog floors the rate at >=1 Hz.
+                if (now_cnt != last_gps_tx_cnt) {
+                    if (radioTransmitGpsFrame()) {
+                        last_gps_tx_cnt = now_cnt;
+                        last_gps_flight_tx = now;
+                    }
+                } else if (now - last_gps_flight_tx >= RADIO_FLIGHT_GPS_GUARANTEE_MS) {
+                    if (radioTransmitGpsFrame()) {
+                        last_gps_flight_tx = now;
+                    }
                 }
             }
         } else if (current_state == STATE_GROUND) {
             if (now - last_radio_core_tx >= RADIO_GROUND_CORE_INTERVAL_MS) {
-                last_radio_core_tx = now;
-                radioTransmitFrame();
+                if (radioTransmitFrame()) {
+                    last_radio_core_tx = now;
+                }
             }
-            if (now - last_gps_tx >= RADIO_GROUND_GPS_INTERVAL_MS) {
-                last_gps_tx = now;
-                radioTransmitGpsFrame();
+            // Ground GPS is gated by a min gap after the last core frame.
+            if (now - last_gps_tx >= RADIO_GROUND_GPS_INTERVAL_MS &&
+                now - last_radio_core_tx >= RADIO_GROUND_GPS_CORE_GAP_MS) {
+                if (radioTransmitGpsFrame()) {
+                    last_gps_tx = now;
+                }
             }
         }
     }
@@ -679,50 +760,45 @@ void loop() {
                 break;
             }
 
-            // --- Chute confirmation via cumulative good-descent timer ---
-            // Uses an integrator instead of a simple start/stop timer so that
-            // brief oscillations around the threshold don't reset all progress.
-            //   - Each loop pass with good descent:   +100 ms
-            //   - Each loop pass with bad descent:     -200 ms (decays faster than it builds)
-            //   - Clamped 0 to CHUTE_CONFIRM_MS (5000 ms)
-            //   - When integrator reaches CHUTE_CONFIRM_MS → chute confirmed
+            // --- Chute confirmation via descent-rate integrator ---
+            // Accumulate real wall-clock ms while descent is good, 2x decay when bad, clamped 0..5000 -> CHUTE.
             const uint32_t CHUTE_CONFIRM_MS = 5000;
             static uint32_t chute_integrator_ms = 0;
+            static uint32_t last_integrator_tick = 0;
+
+            const uint32_t MIN_CHUTE_DEPLOY_TIME_MS = 3000; // 3 s minimum for chute to inflate
+            uint32_t time_in_recovery = now - state_start_time;
+
+            // Elapsed wall-clock time since the previous loop pass.
+            if (last_integrator_tick == 0) last_integrator_tick = now;
+            uint32_t elapsed = now - last_integrator_tick;
+            last_integrator_tick = now;
 
             bool descent_good = (current_descent_rate < CHUTE_DESCENT_RATE_THRESHOLD);
 
             if (descent_good) {
                 if (chute_integrator_ms < CHUTE_CONFIRM_MS) {
-                    chute_integrator_ms += 100; // accumulate 100 ms per loop
+                    chute_integrator_ms += elapsed; // accumulate real elapsed ms
                     if (chute_integrator_ms > CHUTE_CONFIRM_MS) chute_integrator_ms = CHUTE_CONFIRM_MS;
                 }
-                if (chute_integrator_ms >= CHUTE_CONFIRM_MS) {
+                if (chute_integrator_ms >= CHUTE_CONFIRM_MS &&
+                    time_in_recovery >= MIN_CHUTE_DEPLOY_TIME_MS) {
                     chute_integrator_ms = 0;
                     current_state = STATE_CHUTE;
                     state_start_time = now;
                     Serial.println("State -> CHUTE (chute confirmed by descent rate).");
                 }
             } else {
-                // Decay the integrator (faster than it builds, so brief spikes reset progress)
-                if (chute_integrator_ms > 200) chute_integrator_ms -= 200;
+                // Decay the integrator (2x, so brief spikes reset progress)
+                if (chute_integrator_ms > (2 * elapsed)) chute_integrator_ms -= 2 * elapsed;
                 else chute_integrator_ms = 0;
             }
 
-            // --- Smart panic: time-to-ground based ---
-            // Gives the chute MIN_CHUTE_DEPLOY_TIME_MS to open before any panic.
-            // After that, uses altitude + descent rate to compute time-to-ground.
-            // If barometer has failed (system_errors & 2), falls back to a fixed
-            // panic timeout since altitude is unreliable.
-            const uint32_t MIN_CHUTE_DEPLOY_TIME_MS = 3000; // 3 s minimum for chute to inflate
-            uint32_t time_in_recovery = now - state_start_time;
-
-            // Don't even consider panic until the chute has had time to deploy
+            // --- Smart panic: time-to-ground based (fixed timeout if baro failed) ---
             if (time_in_recovery < MIN_CHUTE_DEPLOY_TIME_MS) break;
 
-            // If barometer failed, use a fixed timeout instead of altitude-based
             if (system_errors & 2) {
-                // Baro failed: altitude is 0, time-to-ground is meaningless.
-                // Use a fixed 8 s panic timeout.
+                // Baro failed: use a fixed 8 s panic timeout.
                 if (time_in_recovery > 8000 && !ch2_fired) {
                     Serial.println("RECOVERY PANIC: Baro failed, deploying backup channel 2.");
                     deployChannel2();
@@ -738,9 +814,7 @@ void loop() {
 
             // Normal case: altitude-based panic
             float dr = fabsf(current_descent_rate);
-            // Use a minimum altitude floor of 30 m for the time calculation.
-            // This prevents a momentary 0-altitude glitch from triggering panic,
-            // and also prevents panic if baro altitude hasn't settled yet.
+            // 30 m floor prevents any 0-altitude glitch from triggering panic.
             float alt_for_calc = fmaxf(current_altitude, 30.0f);
             float time_to_ground_s = alt_for_calc / fmaxf(dr, 0.1f); // avoid div-by-zero
 
@@ -800,8 +874,7 @@ void loop() {
                 // Reset ground timer if conditions aren't met
                 state_start_time = now;
 
-                // Panic: if we've been in CHUTE too long without reaching ground,
-                // deploy any remaining recovery channels
+                // Panic: in CHUTE too long; deploy any remaining channels.
                 if (now - chute_entry_time > CHUTE_PANIC_TIMEOUT_MS) {
                     if (!ch2_fired) {
                         Serial.println("CHUTE PANIC: Deploying backup channel 2.");
@@ -1044,9 +1117,7 @@ void loop1() {
 
 // --- Drain pending GPS frame into flash page buffer (core 1) ---
 void drainGpsFrame() {
-    // Copy the frame out and clear the pending flag atomically. Under the lock
-    // the producer (core 0) cannot start writing a fresh frame mid-copy, so no
-    // torn read is possible.
+    // Atomic copy+clear under the lock so no torn read vs. producer (core 0).
     LogFrameGPS snapped;
     bool have_frame;
     critical_section_enter_blocking(&gps_mailbox_lock);
@@ -1165,14 +1236,12 @@ void setServoAngle(int id, int angle) {
 // [6] SERIAL COMMAND SYSTEM
 // =============================================================================
 
-// Prompt the user for Y/N confirmation before executing a risky action.
-// Returns true if the user typed Y or YES, false otherwise.
+// Prompt Y/N before a risky action; true if user typed Y/YES.
 static bool confirmAction(const char* prompt) {
     Serial.printf("⚠  %s (y/N): ", prompt);
-    // Drain any buffered input before waiting
     while (Serial.available()) Serial.read();
 
-    unsigned long timeout = millis() + 30000; // 30 s timeout
+    unsigned long timeout = millis() + 30000;
     String response = "";
     while (millis() < timeout) {
         if (Serial.available()) {
@@ -1210,17 +1279,10 @@ void handleSerialCommands() {
             Serial.println("RADIO_FREQ: out of range (400–510 MHz).");
         }
     }
-    // --- RADIO_POWER_AUTO ---
-    else if (cmd == "RADIO_POWER_AUTO") {
-        radio_power_override = false;
-        radioApplyStatePower();
-        Serial.println("RADIO_POWER_AUTO: automatic state-based power restored.");
-    }
     // --- RADIO_POWER <dBm> ---
     else if (cmd.startsWith("RADIO_POWER")) {
         float dbm = cmd.substring(11).toFloat();
         if (dbm >= -9.0f && dbm <= 22.0f) {
-            radio_power_override = true;
             radioSetPower(dbm);
         } else {
             Serial.println("RADIO_POWER: out of range (-9 to 22 dBm).");
@@ -1241,9 +1303,8 @@ void handleSerialCommands() {
         Serial.println("Flash erase started. 2 MB boot partition protected.");
         leds[0] = CRGB::Red; FastLED.show();
 
-        // Erase in 64 KB chunks (16 sectors each) — fast enough, but gives frequent
-        // LED blinks for smooth visual progress feedback.
-        const uint32_t CHUNK_SIZE = 64 * 1024; // 64 KB
+        // Erase in 64 KB chunks for LED progress feedback.
+        const uint32_t CHUNK_SIZE = 64 * 1024;
         uint32_t remaining = FLIGHT_DATA_FLASH_SIZE;
         uint32_t offset = 0;
         uint32_t total_chunks = (FLIGHT_DATA_FLASH_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE;
@@ -1258,7 +1319,6 @@ void handleSerialCommands() {
             restore_interrupts(ints);
             rp2040.resumeOtherCore();
 
-            // Toggle LED on each chunk for visual progress
             leds[0] = (chunk_count % 2 == 0) ? CRGB::Red : CRGB::Black;
             FastLED.show();
 
@@ -1486,7 +1546,6 @@ void handleSerialCommands() {
         Serial.println("--- Radio ---");
         Serial.println("  RADIO_FREQ <MHz>     Set frequency (400–510)");
         Serial.println("  RADIO_POWER <dBm>    Set TX power (-9 to 22)");
-        Serial.println("  RADIO_POWER_AUTO     Restore automatic state-based power");
         Serial.println("  RADIO_TEST           Transmit a test frame");
         Serial.println();
         Serial.println("--- Data & Diagnostics ---");
@@ -1561,7 +1620,7 @@ void radioInit() {
     Serial.printf("[LR2021] Radio ready @ %.1f MHz\n", RADIO_FREQUENCY_MHZ);
 }
 
-void radioTransmitFrame() {
+bool radioTransmitFrame() {
     LogFrameCore f;
     memset(&f, 0, sizeof(f));
 
@@ -1587,7 +1646,7 @@ void radioTransmitFrame() {
     f.p1_voltage   = current_p1_voltage;
     f.p2_voltage   = current_p2_voltage;
 
-    radioTransmit((const uint8_t*)&f, sizeof(LogFrameCore));
+    return radioTransmit((const uint8_t*)&f, sizeof(LogFrameCore));
 }
 
 void radioSetFrequency(float mhz) {
@@ -1621,7 +1680,6 @@ void radioSetPower(float dbm) {
 
 void radioApplyStatePower() {
     if (!radio_ready) return;
-    if (radio_power_override) return;
     float dbm;
     if (testbench_active) {
         dbm = TESTBENCH_RADIO_POWER_DBM;
@@ -1643,13 +1701,70 @@ void radioTxDoneISR() {
     radio_tx_done = true;
 }
 
+// Rolling 10 s TX success report: prints success % + sends/sec over the current
+// window once a second, and rolls the window (reset counters) every 10 s of REAL
+// wall-clock time. Uses time_us_64() for both the rate-limit and the window so a
+// flash write that freezes millis() on this core cannot skew the elapsed/rate
+// labels or delay the window reset.
+static void radioReportTxStatus() {
+    // Testbench-only diagnostic; resets the window when inactive.
+    if (!testbench_active) {
+        win_start_us = time_us_64();
+        win_ok = 0;
+        win_dropped = 0;
+        return;
+    }
+
+    static uint64_t last_report_us = 0;
+    uint64_t now_us = time_us_64();
+    if (now_us - last_report_us < 1000000ull) return;   // ~1 report/sec
+    last_report_us = now_us;
+
+    uint64_t elapsed_us = now_us - win_start_us;
+    if (elapsed_us > 10000000ull) elapsed_us = 10000000ull;   // cap at 10 s
+
+    // win_attempted = ok + dropped (true submit + busy-drop cadence).
+    uint32_t win_attempted = win_ok + win_dropped;
+    uint32_t succeeded      = win_ok;
+    float success_pct = (win_attempted > 0) ? (100.0f * (float)succeeded / (float)win_attempted) : 100.0f;
+    float sends_per_sec = (elapsed_us > 0) ? ((float)win_attempted * 1000000.0f / (float)elapsed_us) : 0.0f;
+
+    Serial.printf("[LR2021] TX: %.1f%% success (%lu ok, %lu drop) ~%.0f/s over %.1fs\n",
+                  success_pct,
+                  (unsigned long)succeeded,
+                  (unsigned long)win_dropped,
+                  sends_per_sec,
+                  (double)(elapsed_us / 1000000.0f));
+
+    if (now_us - win_start_us >= 10000000ull) {
+        // Roll the window: reset BOTH counters together on true 10 s elapsed.
+        win_ok = 0;
+        win_dropped = 0;
+        win_start_us = now_us;
+    }
+}
+
 static bool radioTransmit(const uint8_t* frame, size_t len) {
-    if (!radio_ready || radio_tx_busy || len < (4 + 28)) return false;
+    radioReportTxStatus();
+
+    if (!radio_ready || radio_tx_busy || len < (4 + 28)) {
+        if (radio_ready && radio_tx_busy) {
+            radio_tx_dropped++;
+            if (testbench_active) win_dropped++;
+        }
+        return false;
+    }
     memcpy(radio_tx_buf, &frame[4], 28);
     radio_tx_len = 28;
 
+    // Stamp busy-start only on the true not-busy->busy edge so a re-submit
+    // can't reset the watchdog clock and evade the timeout.
     radio_tx_busy = true;
+    radio_tx_busy_start_ms = millis();
+    radio_tx_busy_start_us = time_us_64();
     radio_tx_done = false;
+    radio_tx_attempted++;
+    if (testbench_active) win_ok++;
     int state = radio.startTransmit(radio_tx_buf, radio_tx_len);
     if (state != RADIOLIB_ERR_NONE) {
         radio_tx_busy = false;
@@ -2026,9 +2141,7 @@ void printStatus() {
 // Helper: wait for a single ENTER from the user, drain any buffered input.
 static void waitForContinue() {
     Serial.println("  --- Press ENTER to continue ---");
-    // Drain any leftover input before waiting
     while (Serial.available()) Serial.read();
-    // Block until we see '\n' or '\r'
     while (true) {
         if (Serial.available()) {
             char c = Serial.read();

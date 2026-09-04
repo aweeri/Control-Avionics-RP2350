@@ -22,6 +22,15 @@ const clients = new Set<ServerWebSocket<{ isSerialSource: boolean }>>();
 // Periodically persist buffered rows so memory stays bounded.
 setInterval(() => logger.flush(), 2500).unref?.();
 
+// Keep the process alive even if Bun.serve ends up on a detached event loop,
+// and (critically) stop uncaught exceptions from killing a double-clicked exe
+// immediately. Without this, a startup error makes the console flash and close.
+process.on("uncaughtException", (err) => {
+  console.error("\nUnhandled error:", err?.stack ?? err);
+  console.error("The server may not have started. Press Ctrl+C to exit.");
+});
+setInterval(() => {}, 1 << 30); // hard keep-alive, not unref'd
+
 // ---------------------------------------------------------------------------
 // Telemetry broadcast
 // ---------------------------------------------------------------------------

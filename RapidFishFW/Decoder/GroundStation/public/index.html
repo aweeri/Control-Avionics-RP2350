@@ -59,7 +59,7 @@
     border-bottom: 1px solid var(--border);
   }
   header h1 { font-size: 14px; font-weight: 600; white-space: nowrap; }
-  header .sub { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+  header .sub { flex: 1 1 auto; min-width: 0; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .spacer { flex: 1; }
   .status-pill {
     padding: 3px 9px; border-radius: 999px; font-size: 11px;
@@ -156,6 +156,9 @@
   .trow.hot .tval { color: var(--red); }
   .trow.ok .tval { color: var(--green); }
 
+  .tsec.dual { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .tsec.dual > .tsec-head { grid-column: 1 / -1; }
+
   /* Charts */
   .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 4px; }
   .chart-wrap { background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; position: relative; }
@@ -185,6 +188,36 @@
   }
   #log .lvl-warn { color: var(--orange); }
   #log .lvl-error { color: var(--red); }
+
+  /* Settings modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-overlay[hidden] { display: none; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    width: 380px; max-width: 92vw; padding: 12px 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .modal-head .panel-title { margin-bottom: 0; }
+  .modal-body { display: flex; flex-direction: column; gap: 8px; }
+  .mrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .mrow label { color: var(--muted); white-space: nowrap; }
+  .mrow input, .mrow select {
+    width: 140px; background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 12px;
+  }
+  .mrow input:focus, .mrow select:focus { outline: none; border-color: var(--accent); }
+  .modal-status {
+    margin: 10px 0; font-size: 11px; color: var(--muted); min-height: 14px;
+    white-space: pre-wrap; word-break: break-word; max-height: 90px; overflow-y: auto;
+    font-family: "Cascadia Code", Consolas, monospace;
+  }
+  .modal-status .ok { color: var(--green); }
+  .modal-status .err { color: var(--red); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>
 </head>
 <body>
@@ -195,10 +228,56 @@
   <span class="status-pill" id="wsPill">● server</span>
   <span class="status-pill" id="statePill">state: —</span>
   <span class="status-pill" id="framePill">—</span>
+  <span class="status-pill" id="gpsPill" title="Local (receiver) GPS">local GPS: —</span>
+  <button id="settingsBtn" title="Change LoRa radio settings (serial)">⚙ Settings</button>
   <button id="themeBtn" title="Toggle light/dark theme">◐ Theme</button>
   <button id="recBtn" class="primary">● Rec</button>
   <button id="connectBtn">Connect serial</button>
 </header>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settingsModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <div class="panel-title"><span class="ic" id="icSettings"></span> Radio settings</div>
+      <button id="settingsCloseBtn" title="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mrow"><label>Frequency (MHz)</label><input id="sFreq" type="number" step="0.1" min="150" max="1000" /></div>
+      <div class="mrow"><label>Bandwidth (kHz)</label><select id="sBW">
+        <option value="7.8">7.8 kHz</option>
+        <option value="10.4">10.4 kHz</option>
+        <option value="15.6">15.6 kHz</option>
+        <option value="20.8">20.8 kHz</option>
+        <option value="31.25">31.25 kHz</option>
+        <option value="41.7">41.7 kHz</option>
+        <option value="62.5">62.5 kHz</option>
+        <option value="125">125 kHz</option>
+        <option value="250">250 kHz</option>
+        <option value="500">500 kHz</option>
+      </select></div>
+      <div class="mrow"><label>Spreading factor</label><select id="sSF">
+        <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+        <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+      </select></div>
+      <div class="mrow"><label>Coding rate</label><select id="sCR">
+        <option value="5">4/5</option><option value="6">4/6</option>
+        <option value="7">4/7</option><option value="8">4/8</option>
+      </select></div>
+      <div class="mrow"><label>Preamble (symbols)</label><input id="sPL" type="number" step="1" min="6" max="65535" /></div>
+      <div class="mrow"><label>CRC mismatch</label><select id="sCRC">
+        <option value="0">Reject (0)</option><option value="1">Accept (1)</option>
+      </select></div>
+      <div class="mrow"><label>Observer alt fallback (m)</label><input id="sObsAlt" type="number" step="1" /></div>
+      <div class="modal-status" id="sSettingsStatus"></div>
+    </div>
+    <div class="modal-actions">
+      <button id="sApplyBtn" class="primary">Apply & save</button>
+      <button id="sRefreshBtn">Refresh</button>
+      <button id="sSaveBtn">Save only</button>
+    </div>
+  </div>
+</div>
 
 <main>
   <div class="col">
@@ -276,15 +355,18 @@ function icon(name) { return ICONS[name] || ""; }
 const state = {
   ws: null,
   serial: null,
+  writer: null,
   reader: null,
   rec: true,
+  settings: {},   // latest parsed radio settings (from SHOW)
   latest: {},
   history: {},
   track: [],
   map: null, trackLine: null, marker: null, mapFallback: null, mapFallbackCtx: null,
   att: { R: [[1,0,0],[0,1,0],[0,0,1]], lastT: null, idle: true },
   chartEls: {},
-  lastPacket: {},   // apid -> { t: Date.now(), label }
+  lastPacket: {},   // apid -> { t, prevT, label, rateHz }
+  obsAlt: 0,        // observer altitude fallback (m MSL) when receiver lacks onboard GPS
 };
 const MAX_POINTS = 600;
 const MAX_TRACK = 2000;
@@ -332,6 +414,39 @@ function isArmed(f) {
   const fs = stateStr(f).toUpperCase();
   return fs === "ARMED" || Number(f.flight_state) === 3;
 }
+function computeSlantRange(f) {
+  const oLat = f["local_gps.lat"], oLon = f["local_gps.lon"];
+  const oFix = f["local_gps.fix"];
+  const rLat = f.lat, rLon = f.lon;
+  const valid = oFix === true
+    && oLat != null && oLon != null
+    && rLat != null && rLon != null
+    && !isNaN(Number(oLat)) && !isNaN(Number(oLon))
+    && !isNaN(Number(rLat)) && !isNaN(Number(rLon));
+  if (!valid) {
+    f["slant_km"] = f["horiz_km"] = f["bearing_deg"] = f["elev_deg"] = f["vert_m"] = null;
+    return;
+  }
+  const R = 6371000, D = Math.PI / 180;
+  const p1 = Number(rLat) * D, p2 = Number(oLat) * D;
+  const dp = (Number(oLat) - Number(rLat)) * D;
+  const dl = (Number(oLon) - Number(rLon)) * D;
+  const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const horizM = R * c;
+  const rocketAlt = f.baro_alt != null ? Number(f.baro_alt)
+                  : (f.gps_alt != null ? Number(f.gps_alt) : null);
+  const obsAlt = f["local_gps.altitude"] != null ? Number(f["local_gps.altitude"]) : state.obsAlt;
+  const vertM = rocketAlt != null ? rocketAlt - obsAlt : null;
+  const slantM = vertM != null ? Math.hypot(horizM, vertM) : horizM;
+  const theta = Math.atan2(Math.sin(dl) * Math.cos(p2),
+                           Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl));
+  f["horiz_km"]  = horizM / 1000;
+  f["slant_km"]  = slantM / 1000;
+  f["vert_m"]    = vertM;
+  f["bearing_deg"] = (theta * 180 / Math.PI + 360) % 360;
+  f["elev_deg"]  = vertM != null ? Math.atan2(vertM, horizM) * 180 / Math.PI : null;
+}
 
 // ===========================================================================
 // Telemetry readout sections (icon + label + value rows)
@@ -348,13 +463,13 @@ const SECTIONS = [
     ],
   },
   {
-    id: "imu", title: "IMU", icon: "accel",
+    id: "imu", title: "IMU", icon: "accel", dual: true,
     rows: [
       { id: "ax", label: "Accel X", icon: "accel", get: f => num(f["accel.x"]) + " m/s²" },
-      { id: "ay", label: "Accel Y", icon: "accel", get: f => num(f["accel.y"]) + " m/s²" },
-      { id: "az", label: "Accel Z", icon: "accel", get: f => num(f["accel.z"]) + " m/s²" },
       { id: "gx", label: "Gyro X",  icon: "gyro",  get: f => num(f["gyro.x"], 3) + " rad/s" },
+      { id: "ay", label: "Accel Y", icon: "accel", get: f => num(f["accel.y"]) + " m/s²" },
       { id: "gy", label: "Gyro Y",  icon: "gyro",  get: f => num(f["gyro.y"], 3) + " rad/s" },
+      { id: "az", label: "Accel Z", icon: "accel", get: f => num(f["accel.z"]) + " m/s²" },
       { id: "gz", label: "Gyro Z",  icon: "gyro",  get: f => num(f["gyro.z"], 3) + " rad/s" },
     ],
   },
@@ -376,10 +491,12 @@ const SECTIONS = [
     ],
   },
   {
-    id: "radio", title: "Radio", icon: "radio",
+    id: "radio", title: "Radio link", icon: "radio",
     rows: [
       { id: "rssi", label: "RSSI", icon: "signal", get: f => num(f.rssi) + " dBm" },
       { id: "snr",  label: "SNR",  icon: "signal", get: f => num(f.snr) + " dB" },
+      { id: "core", label: "Core (apid 0)", icon: "chip",  get: () => "—", last: true, apid: 0 },
+      { id: "gps",  label: "GPS (apid 1)",  icon: "sat",   get: () => "—", last: true, apid: 1 },
     ],
   },
   {
@@ -393,13 +510,14 @@ const SECTIONS = [
       { id: "mx",   label: "Mag X",     icon: "mag",     get: f => f["mag.x"] != null ? f["mag.x"] : "—" },
       { id: "my",   label: "Mag Y",     icon: "mag",     get: f => f["mag.y"] != null ? f["mag.y"] : "—" },
       { id: "mz",   label: "Mag Z",     icon: "mag",     get: f => f["mag.z"] != null ? f["mag.z"] : "—" },
-    ],
-  },
-  {
-    id: "link", title: "Link", icon: "signal",
-    rows: [
-      { id: "core", label: "Core (apid 0)", icon: "chip",  get: () => "—", last: true, apid: 0 },
-      { id: "gps",  label: "GPS (apid 1)",  icon: "sat",   get: () => "—", last: true, apid: 1 },
+      { id: "ofix",  label: "Observer fix", icon: "sat",     get: f => f["local_gps.fix"] === true ? "FIX" : "no fix" },
+      { id: "olat",  label: "Observer lat", icon: "gps",     get: f => f["local_gps.lat"] != null ? Number(f["local_gps.lat"]).toFixed(6) : "—" },
+      { id: "olon",  label: "Observer lon", icon: "gps",     get: f => f["local_gps.lon"] != null ? Number(f["local_gps.lon"]).toFixed(6) : "—" },
+      { id: "hdist", label: "Horizontal dist", icon: "gps",  get: f => num(f["horiz_km"]) + " km" },
+      { id: "slant", label: "Slant range",   icon: "gps",    get: f => num(f["slant_km"]) + " km" },
+      { id: "vert",  label: "Vertical Δ",    icon: "mountain",get: f => num(f["vert_m"]) + " m" },
+      { id: "bear",  label: "Bearing",       icon: "gps",    get: f => num(f["bearing_deg"], 1) + "°" },
+      { id: "elev",  label: "Elevation",     icon: "gps",    get: f => num(f["elev_deg"], 1) + "°" },
     ],
   },
 ];
@@ -409,6 +527,7 @@ function buildSections() {
   for (const sec of SECTIONS) {
     const secEl = document.createElement("div");
     secEl.className = "tsec";
+    if (sec.dual) secEl.classList.add("dual");
     secEl.innerHTML = '<div class="tsec-head"><span class="ic">' + icon(sec.icon) + '</span>' + sec.title + '</div>';
     for (const r of sec.rows) {
       const el = document.createElement("div");
@@ -429,23 +548,33 @@ function renderTelemetry() {
       const valEl = el.querySelector(".tval");
       let v;
       if (r.last) {
-        // per-apid last packet age
+        // Link rows: age (+ instantaneous Hz in brackets), no unit to split
         const lp = state.lastPacket[r.apid];
-        v = lp ? fmtAge(Date.now() - lp.t) : "—";
-      } else {
-        v = r.get(l);
-      }
-      // split value and unit (unit is the trailing token like " m", " V")
-      const m = /^(.*?)(\s+[^\s]+)$/.exec(v);
-      if (m) {
-        valEl.textContent = m[1];
-        let u = el.querySelector(".tunit");
-        if (!u) { u = document.createElement("span"); u.className = "tunit"; valEl.after(u); }
-        u.textContent = m[2].trim();
-      } else {
-        valEl.textContent = v;
+        if (lp) {
+          const age = fmtAge(Date.now() - lp.t);
+          const rate = (lp.rateHz != null && isFinite(lp.rateHz))
+            ? " (" + lp.rateHz.toFixed(1) + " Hz)"
+            : "";
+          valEl.textContent = age + rate;
+        } else {
+          valEl.textContent = "—";
+        }
         const u = el.querySelector(".tunit");
         if (u) u.remove();
+      } else {
+        v = r.get(l);
+        // split value and unit (unit is the trailing token like " m", " V")
+        const m = /^(.*?)(\s+[^\s]+)$/.exec(v);
+        if (m) {
+          valEl.textContent = m[1];
+          let u = el.querySelector(".tunit");
+          if (!u) { u = document.createElement("span"); u.className = "tunit"; valEl.after(u); }
+          u.textContent = m[2].trim();
+        } else {
+          valEl.textContent = v;
+          const u = el.querySelector(".tunit");
+          if (u) u.remove();
+        }
       }
       el.classList.toggle("armed", r.armed && isArmed(l));
       // highlight stale links
@@ -504,6 +633,11 @@ const CHART_DEFS = [
   { id: "chGps",   title: "GPS", series: [
     { key: "sats", color: "#3fb950", label: "Sats" },
     { key: "hdop", color: "#d29922", label: "HDOP" },
+  ]},
+  { id: "chSlant", title: "Slant range", series: [
+    { key: "slant_km", color: "#f85149", label: "Slant km" },
+    { key: "horiz_km", color: "#2f81f7", label: "Horiz km" },
+    { key: "vert_m",   color: "#3fb950", label: "Vert m" },
   ]},
   { id: "chMag",   title: "Mag", series: [
     { key: "mag.x", color: "#2f81f7", label: "X" },
@@ -1088,6 +1222,7 @@ async function connectSerial() {
     const port = await navigator.serial.requestPort();
     await port.open({ baudRate: 115200 });
     state.serial = port;
+    state.writer = port.writable ? port.writable.getWriter() : null;
     setPill("wsPill", "server: online · serial: connected", "online");
     document.getElementById("connectBtn").textContent = "Disconnect serial";
 
@@ -1104,7 +1239,10 @@ async function connectSerial() {
           while ((idx = buf.indexOf("\n")) >= 0) {
             const line = buf.slice(0, idx).trim();
             buf = buf.slice(idx + 1);
-            if (line) wsSend({ type: "line", data: line });
+            if (line) {
+              wsSend({ type: "line", data: line });
+              onSerialLine(line);
+            }
           }
         }
       } catch (e) {
@@ -1121,12 +1259,117 @@ async function connectSerial() {
   }
 }
 function onSerialDisconnected() {
+  if (state.writer) { try { state.writer.releaseLock(); } catch (e) {} state.writer = null; }
   state.serial = null;
   setPill("wsPill", "server: online · serial: disconnected", "");
   document.getElementById("connectBtn").textContent = "Connect serial";
   wsSend({ type: "serialDisconnected" });
   log("serial disconnected", "warn");
 }
+
+// ===========================================================================
+// Radio settings modal (serial commands)
+// ===========================================================================
+// The receiver prints current settings on SHOW and echoes each change back as
+// "changing <name> <token> <ok|FAIL>". Capture those lines into state.settings
+// and surface acks to a pending request so the modal can update live.
+const SETTINGS_PARSERS = [
+  { re: /^freq\s+F\s+([\d.]+)$/i,        key: "freq" },
+  { re: /^bandwidth\s+BW\s+([\d.]+)$/i,  key: "bw" },
+  { re: /^spreading\s+factor\s+SF\s+(\d+)$/i, key: "sf" },
+  { re: /^coding\s+rate\s+CR\s+(\d+)$/i, key: "cr" },
+  { re: /^preamble\s+PL\s+(\d+)$/i,      key: "pl" },
+  { re: /^crc\s+mismatch\s+ACCEPT\s+(\d)$/i, key: "crcm" },
+];
+// Responses we use to populate the modal; buffer them until SHOW finishes.
+let settingsSnapshot = {};
+let settingsSnapshotTimer = null;
+
+function onSerialLine(line) {
+  for (const p of SETTINGS_PARSERS) {
+    const m = p.re.exec(line);
+    if (m) {
+      state.settings[p.key] = p.key === "freq" || p.key === "bw" ? Number(m[1]) : Number(m[1]);
+      settingsSnapshot[p.key] = state.settings[p.key];
+      if (settingsSnapshotTimer) clearTimeout(settingsSnapshotTimer);
+      settingsSnapshotTimer = setTimeout(flushSettingsSnapshot, 400);
+      return;
+    }
+  }
+  // Echoed ack for a settings change already in flight.
+  if (line.startsWith("changing ") || line === "saved") {
+    settingsSnapshot.status = line;
+    if (state.pendingAck) {
+      state.pendingAck.resolve(line);
+      state.pendingAck = null;
+    }
+  }
+}
+function flushSettingsSnapshot() {
+  settingsSnapshotTimer = null;
+  if (document.getElementById("settingsModal") && !document.getElementById("settingsModal").hidden) {
+    if (Object.keys(state.settings).length === 0) {
+      setSettingsStatus("No response from device — is the receiver connected and running firmware with the SHOW command?", "err");
+    } else {
+      syncSettingsForm();
+    }
+  }
+}
+function setSettingsStatus(text, cls) {
+  const el = document.getElementById("sSettingsStatus");
+  el.innerHTML = "";
+  if (!text) return;
+  const span = document.createElement("span");
+  if (cls) span.className = cls;
+  span.textContent = text;
+  el.appendChild(span);
+}
+function syncSettingsForm() {
+  const s = state.settings;
+  const set = (id, v) => { const el = document.getElementById(id); if (v != null) el.value = v; };
+  set("sFreq", s.freq != null ? s.freq.toFixed(1) : "");
+  set("sBW", s.bw != null ? String(Number(s.bw)) : "");
+  set("sSF", s.sf);
+  set("sCR", s.cr);
+  set("sPL", s.pl);
+  set("sCRC", s.crcm);
+  const obsEl = document.getElementById("sObsAlt");
+  if (obsEl) obsEl.value = state.obsAlt;
+  if (Object.keys(s).length) setSettingsStatus(s.status || "Loaded — edits apply live on save.");
+}
+function sendSerialCommand(cmd, waitAck) {
+  if (!state.writer) { setSettingsStatus("Serial not connected — click Connect serial.", "err"); return null; }
+  if (waitAck === undefined) waitAck = true;
+  return new Promise((resolve) => {
+    if (waitAck) {
+      // response line (echoed "changing ..." / "saved") arrives via onSerialLine
+      state.pendingAck = { resolve };
+    } else {
+      // fire-and-forget — caller handles timing (e.g. SHOW fills the snapshot)
+      setTimeout(() => resolve(null), 60);
+    }
+    state.writer.write(new TextEncoder().encode(cmd + "\n")).catch((e) => {
+      setSettingsStatus("serial write error: " + e, "err");
+      state.pendingAck = null;
+      resolve(null);
+    });
+    if (waitAck) setTimeout(() => { if (state.pendingAck) { const r = state.pendingAck.resolve; state.pendingAck = null; r(null); } }, 2000);
+  });
+}
+function collectSettingsSnapshot() {
+  return new Promise((resolve) => {
+    settingsSnapshot = { status: "" };
+    sendSerialCommand("SHOW", false).then(() => {
+      setTimeout(() => { flushSettingsSnapshot(); resolve({ ...settingsSnapshot }); }, 400);
+    });
+  });
+}
+function openSettingsModal() {
+  document.getElementById("settingsModal").hidden = false;
+  setSettingsStatus("Requesting current settings…");
+  collectSettingsSnapshot();
+}
+function closeSettingsModal() { document.getElementById("settingsModal").hidden = true; }
 
 // ===========================================================================
 // Telemetry handling
@@ -1145,10 +1388,13 @@ function onTelemetry(raw) {
     f.gforce = Math.hypot(f["accel.x"], f["accel.y"], f["accel.z"]) / 9.81;
   }
   if (f.flash_used != null) f.flash_pct = f.flash_used / 2;
+  computeSlantRange(f);
 
   if (f.apid === 256 && f.frames !== undefined) {
     document.getElementById("framePill").textContent = "frames: " + f.frames;
   }
+  updateGpsPill(f);
+
 
   const fs = stateStr(f);
   if (fs !== "—") setPill("statePill", "state: " + fs, isArmed(f) ? "armed" : "");
@@ -1156,7 +1402,13 @@ function onTelemetry(raw) {
   const t = Date.now();
   // per-apid last packet time (ignore apid 256 status frames)
   if (f.apid != null && Number(f.apid) !== 256) {
-    state.lastPacket[Number(f.apid)] = { t, label: "apid " + f.apid };
+    const apid = Number(f.apid);
+    const prev = state.lastPacket[apid];
+    const interval = prev ? t - prev.t : 0;
+    state.lastPacket[apid] = {
+      t, prevT: prev ? prev.t : null, label: "apid " + apid,
+      rateHz: interval > 0 ? 1000 / interval : null,
+    };
   }
 
   for (const key of Object.keys(state.history)) {
@@ -1178,9 +1430,18 @@ function onTelemetry(raw) {
 // Misc UI helpers
 // ===========================================================================
 function setPill(id, text, cls) { const el = document.getElementById(id); el.textContent = text; el.className = "status-pill " + (cls || ""); }
+function updateGpsPill(f) {
+  if (f["local_gps.fix"] === true) {
+    const sats = f["local_gps.sats"];
+    setPill("gpsPill", "local GPS: lock" + (sats != null ? " · " + sats + " sats" : ""), "online");
+  } else {
+    setPill("gpsPill", "local GPS: no fix", "");
+  }
+}
 function setCsv(sessionDir, files) {
   const el = document.getElementById("csvPath");
   el.textContent = "Logs: " + sessionDir;
+  el.title = sessionDir;
   if (Array.isArray(files) && files.length) el.textContent += " (" + files.length + " apid files)";
 }
 function log(text, level) {
@@ -1201,6 +1462,7 @@ document.getElementById("icMap").innerHTML = icon("map");
 document.getElementById("icAtt").innerHTML = icon("gyro");
 document.getElementById("icTele").innerHTML = icon("tele");
 document.getElementById("icCharts").innerHTML = icon("chart");
+document.getElementById("icSettings").innerHTML = icon("radio");
 
 buildSections();
 buildCharts();
@@ -1216,6 +1478,69 @@ document.getElementById("recBtn").addEventListener("click", (e) => {
   e.target.classList.toggle("primary", state.rec);
   wsSend({ type: "rec", data: state.rec });
   log(state.rec ? "CSV recording enabled" : "CSV recording paused", "warn");
+});
+
+// Radio settings modal
+document.getElementById("settingsBtn").addEventListener("click", openSettingsModal);
+document.getElementById("settingsCloseBtn").addEventListener("click", closeSettingsModal);
+document.getElementById("settingsModal").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeSettingsModal();
+});
+
+async function applyRadioSettings() {
+  const obsEl = document.getElementById("sObsAlt");
+  const obsVal = obsEl ? Number(obsEl.value) : NaN;
+  if (!isNaN(obsVal)) {
+    state.obsAlt = obsVal;
+    try { localStorage.setItem("gs-obsAlt", String(obsVal)); } catch (e) {}
+  }
+  if (!state.writer) {
+    setSettingsStatus("Serial not connected — click Connect serial.", "err");
+    if (state.obsAlt) renderTelemetry();
+    return;
+  }
+  const cmds = [];
+  const v = id => document.getElementById(id).value;
+  cmds.push("F " + v("sFreq"));
+  cmds.push("BW " + v("sBW"));
+  cmds.push("SF " + v("sSF"));
+  cmds.push("CR " + v("sCR"));
+  cmds.push("PL " + v("sPL"));
+  cmds.push("CRC " + v("sCRC"));
+  for (const c of cmds) {
+    const resp = await sendSerialCommand(c);
+    if (resp == null) { setSettingsStatus("no response to " + c + " — check serial link.", "err"); break; }
+    if (resp.indexOf("FAIL") >= 0) { setSettingsStatus(resp, "err"); break; }
+  }
+  // SAVE persists to NVS (settings are also auto-saved on change).
+  const saved = await sendSerialCommand("SAVE");
+  setSettingsStatus(saved || "saved", "ok");
+  // Re-read to show authoritative values.
+  collectSettingsSnapshot();
+}
+
+document.getElementById("sApplyBtn").addEventListener("click", applyRadioSettings);
+document.getElementById("sSaveBtn").addEventListener("click", async () => {
+  if (!state.writer) { setSettingsStatus("Serial not connected — click Connect serial.", "err"); return; }
+  const saved = await sendSerialCommand("SAVE");
+  setSettingsStatus(saved || "saved", "ok");
+});
+document.getElementById("sRefreshBtn").addEventListener("click", () => {
+  setSettingsStatus("Requesting current settings…");
+  collectSettingsSnapshot();
+});
+// Refresh current values whenever the modal is opened.
+document.getElementById("sFreq").addEventListener("keydown", (e) => { if (e.key === "Enter") applyRadioSettings(); });
+document.getElementById("sPL").addEventListener("keydown", (e) => { if (e.key === "Enter") applyRadioSettings(); });
+// Observer altitude fallback (local UI only — not a serial setting). Persist on change.
+const sObsAltEl = document.getElementById("sObsAlt");
+if (sObsAltEl) sObsAltEl.addEventListener("input", () => {
+  const v = Number(sObsAltEl.value);
+  if (!isNaN(v)) {
+    state.obsAlt = v;
+    try { localStorage.setItem("gs-obsAlt", String(v)); } catch (e) {}
+    renderTelemetry();
+  }
 });
 
 // Copy coordinates (Google Maps format: "lat, lon")
@@ -1255,6 +1580,8 @@ themeBtn.addEventListener("click", () => {
 });
 try {
   if (localStorage.getItem("gs-theme") === "light") applyTheme(true);
+  const obsAlt = Number(localStorage.getItem("gs-obsAlt"));
+  if (!isNaN(obsAlt)) state.obsAlt = obsAlt;
 } catch (e) {}
 
 // refresh per-apid packet ages every 500ms so the Link section stays live

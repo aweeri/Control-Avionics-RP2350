@@ -60,7 +60,7 @@
 // attached. Options:
 //   RECOVERY_TYPE_SERVO  — A servo motor (e.g. for retention / deployment)
 //   RECOVERY_TYPE_PYRO   — A pyrotechnic igniter (e.g. e-match)
-#define RECOVERY_TYPE_ID1  RECOVERY_TYPE_SERVO
+#define RECOVERY_TYPE_ID1  RECOVERY_TYPE_PYRO
 #define RECOVERY_TYPE_ID2  RECOVERY_TYPE_PYRO
 
 // ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@
 //   - Radio TX power reduced to TESTBENCH_RADIO_POWER_DBM
 //   - Recovery system activations are replaced with serial text (no hardware fire)
 // Disable (false) for actual flight.
-#define TESTBENCH_MODE true
+#define TESTBENCH_MODE false
 
 // ---------------------------------------------------------------------------
 // 1d. Hardware Pins — Only change if you have a custom board layout
@@ -112,16 +112,17 @@
 const float LAUNCH_G_THRESHOLD       = 2.0f;   // [USER] G-force to detect liftoff
 const float BURNOUT_G_THRESHOLD      = 0.5f;   // [USER] G-force below which = burnout
 const float APOGEE_DIP_METERS        = 6.0f;   // [USER] Altitude drop to confirm apogee
-const float GROUND_G_TOLERANCE       = 0.2f;   // [USER] G-range considered "still"
+const float GROUND_G_TOLERANCE       = 0.1f;   // [USER] G-range considered "still"
 const bool  IS_UPSIDE_DOWN           = false;  // [USER] True if rocket is stored upside-down. If SAT logo is upside-down, set true.
 
 // ---------------------------------------------------------------------------
 // 1f. Timing Thresholds (milliseconds) — [USER]
 // ---------------------------------------------------------------------------
-const uint32_t MIN_MOTOR_BURN_MS     = 500;    // [USER] Minimum burn time before burnout check
-const uint32_t MAX_MOTOR_BURN_MS     = 3000;   // [USER] Max burn time (timeout failsafe)
-const uint32_t RECOVERY_DELAY_MS     = 0;      // [USER] Delay after deployment before CHUTE
-const uint32_t GROUND_WAIT_MS        = 5000;   // [USER] Time on ground before STATE_GROUND
+const uint32_t MIN_MOTOR_BURN_MS       = 1500;    // [USER] Minimum burn time before burnout check
+const uint32_t MAX_MOTOR_BURN_MS       = 2000;    // [USER] Max burn time (timeout failsafe)
+const uint32_t RECOVERY_DELAY_MS       = 0;       // [USER] Delay after deployment before CHUTE
+const uint32_t GROUND_WAIT_MS          = 10000;   // [USER] Time on ground before STATE_GROUND
+const uint32_t GROUND_LOG_DURATION_MS  = 10000;   // [USER] How long to keep logging after landing (ms)
 
 // ---------------------------------------------------------------------------
 // 1g. Pyro Deployment Thresholds — [USER] (only used if PYRO selected)
@@ -129,7 +130,7 @@ const uint32_t GROUND_WAIT_MS        = 5000;   // [USER] Time on ground before S
 const uint8_t  PYRO_CONTINUITY_THRESHOLD   = 10;     // [USER] ADC value for continuity
 const uint32_t PYRO_FIRE_DURATION_MS       = 3000;   // [USER] How long to fire pyro (ms)
 const uint32_t PYRO_REDEPLOY_TIMEOUT_MS    = 3000;   // [USER] Backup pyro wait (ms)
-const float    CHUTE_DESCENT_RATE_THRESHOLD = 5.0f;  // [USER] m/s below which = chute out
+const float    CHUTE_DESCENT_RATE_THRESHOLD = 15.0f;  // [USER] m/s below which = chute out
 
 // ---------------------------------------------------------------------------
 // 1h. Radio Telemetry — [USER] Frequency, power, intervals
@@ -760,13 +761,45 @@ void loop() {
                 break;
             }
 
+            // --- Ground detection early exit ---
+            // If we're low, still, and not descending, we're on the ground.
+            // This prevents the descent-rate integrator from falsely confirming
+            // a chute when the rocket has already impacted.
+            {
+                const float GROUND_ALT_TOLERANCE = 50.0f;
+                const float GYRO_STILL_TOL = 0.4f;
+                const float DESCENT_NEAR_ZERO = 1.0f;
+                static uint32_t ground_confirm_start = 0;
+
+                bool on_ground = (current_altitude < GROUND_ALT_TOLERANCE &&
+                                  current_gyro_mag <= GYRO_STILL_TOL &&
+                                  fabsf(current_descent_rate) < DESCENT_NEAR_ZERO);
+
+                if (on_ground) {
+                    if (ground_confirm_start == 0) {
+                        ground_confirm_start = now;
+                    } else if (now - ground_confirm_start > 1000) {
+                        // 1 second confirmed on ground -> GROUND
+                        ground_confirm_start = 0;
+                        chute_integrator_ms = 0;
+                        last_integrator_tick = 0;
+                        flushPageBuffer();
+                        current_state = STATE_GROUND;
+                        state_start_time = now; // start post-landing log timer
+                        Serial.println("State -> GROUND (ground detected in RECOVERY).");
+                        break;
+                    }
+                } else {
+                    ground_confirm_start = 0;
+                }
+            }
+
             // --- Chute confirmation via descent-rate integrator ---
-            // Accumulate real wall-clock ms while descent is good, 2x decay when bad, clamped 0..5000 -> CHUTE.
             const uint32_t CHUTE_CONFIRM_MS = 5000;
             static uint32_t chute_integrator_ms = 0;
             static uint32_t last_integrator_tick = 0;
 
-            const uint32_t MIN_CHUTE_DEPLOY_TIME_MS = 3000; // 3 s minimum for chute to inflate
+            const uint32_t MIN_CHUTE_DEPLOY_TIME_MS = 3000;
             uint32_t time_in_recovery = now - state_start_time;
 
             // Elapsed wall-clock time since the previous loop pass.
@@ -776,9 +809,13 @@ void loop() {
 
             bool descent_good = (current_descent_rate < CHUTE_DESCENT_RATE_THRESHOLD);
 
-            if (descent_good) {
+            // Don't accumulate the integrator if we're too low — a low descent rate
+            // at low altitude is likely ground impact, not a deployed chute.
+            bool too_low_for_chute = (current_altitude < 50.0f);
+
+            if (descent_good && !too_low_for_chute) {
                 if (chute_integrator_ms < CHUTE_CONFIRM_MS) {
-                    chute_integrator_ms += elapsed; // accumulate real elapsed ms
+                    chute_integrator_ms += elapsed;
                     if (chute_integrator_ms > CHUTE_CONFIRM_MS) chute_integrator_ms = CHUTE_CONFIRM_MS;
                 }
                 if (chute_integrator_ms >= CHUTE_CONFIRM_MS &&
@@ -789,16 +826,14 @@ void loop() {
                     Serial.println("State -> CHUTE (chute confirmed by descent rate).");
                 }
             } else {
-                // Decay the integrator (2x, so brief spikes reset progress)
                 if (chute_integrator_ms > (2 * elapsed)) chute_integrator_ms -= 2 * elapsed;
                 else chute_integrator_ms = 0;
             }
 
-            // --- Smart panic: time-to-ground based (fixed timeout if baro failed) ---
+            // --- Smart panic: time-to-ground based ---
             if (time_in_recovery < MIN_CHUTE_DEPLOY_TIME_MS) break;
 
             if (system_errors & 2) {
-                // Baro failed: use a fixed 8 s panic timeout.
                 if (time_in_recovery > 8000 && !ch2_fired) {
                     Serial.println("RECOVERY PANIC: Baro failed, deploying backup channel 2.");
                     deployChannel2();
@@ -814,9 +849,10 @@ void loop() {
 
             // Normal case: altitude-based panic
             float dr = fabsf(current_descent_rate);
-            // 30 m floor prevents any 0-altitude glitch from triggering panic.
-            float alt_for_calc = fmaxf(current_altitude, 30.0f);
-            float time_to_ground_s = alt_for_calc / fmaxf(dr, 0.1f); // avoid div-by-zero
+            // 5 m floor prevents any 0-altitude glitch from triggering panic,
+            // while still allowing ground-level detection (was 30m — too high).
+            float alt_for_calc = fmaxf(current_altitude, 5.0f);
+            float time_to_ground_s = alt_for_calc / fmaxf(dr, 0.1f);
 
             bool should_panic = false;
             if (time_to_ground_s < 3.0f) {
@@ -868,6 +904,7 @@ void loop() {
                     chute_entry_time = 0;
                     flushPageBuffer();
                     current_state = STATE_GROUND;
+                    state_start_time = now; // start post-landing log timer
                     Serial.println("Flight complete (chute descent confirmed).");
                 }
             } else {
@@ -884,17 +921,33 @@ void loop() {
                     chute_entry_time = 0;
                     flushPageBuffer();
                     current_state = STATE_GROUND;
+                    state_start_time = now; // start post-landing log timer
                     Serial.println("CHUTE PANIC: Forcing GROUND state.");
                 }
             }
             break;
         }
 
-        case STATE_GROUND:
+        case STATE_GROUND: {
+            // Post-landing log timer: keep logging for GROUND_LOG_DURATION_MS,
+            // then stop (state transitions to a terminal no-log state).
+            static uint32_t ground_entry_time = 0;
+            if (ground_entry_time == 0) {
+                ground_entry_time = now;
+            }
+            if (now - ground_entry_time > GROUND_LOG_DURATION_MS) {
+                // Post-landing log window expired — flush and stop logging.
+                // We stay in STATE_GROUND but the logging gate on core 1 will
+                // see state > STATE_CHUTE and stop.
+                // Reset ground_entry_time so it doesn't keep flushing.
+                ground_entry_time = 0;
+            }
+
             if (buzzer.pattern != BUZZER_SOS) {
                 startBuzzerPattern(BUZZER_SOS);
             }
             break;
+        }
 
         case STATE_BOOTING:
             break;
@@ -1016,7 +1069,7 @@ void loop1() {
             }
         }
 
-        float x_mod = IS_UPSIDE_DOWN ? 1.0f : -1.0f;
+        float x_mod = IS_UPSIDE_DOWN ? -1.0f : 1.0f;
 
         current_accel_x = (ax_val * x_mod) / 9.81f;
         current_accel_y = ay_val / 9.81f;
@@ -1060,7 +1113,9 @@ void loop1() {
             {
                 static float prev_altitude = 0.0f;
                 float delta = prev_altitude - current_altitude;
-                current_descent_rate = (current_descent_rate * 0.7f) + (delta * 50.0f * 0.3f);
+                // Barometer is read every 5 ms (1 kHz loop, decimator=5).
+                // Conversion from delta-per-5ms to m/s: delta * (1000/5) = delta * 200.
+                current_descent_rate = (current_descent_rate * 0.7f) + (delta * 200.0f * 0.3f);
                 prev_altitude = current_altitude;
             }
 
@@ -1069,45 +1124,60 @@ void loop1() {
             current_p2_voltage  = (uint8_t)(analogRead(PYRO2_ADC_PIN) >> 4);
         }
 
-        // --- Flash logging (flight only) ---
-        if (current_state >= STATE_ACCELERATING && current_state <= STATE_CHUTE) {
-            LogFrameCore* f = &page_buffer[buffer_index].core;
-
-            f->sync_word    = SYNC_WORD;
-            f->timestamp    = millis();
-            f->apid         = 0;
-            f->flight_state = (uint8_t)current_state;
-            {
-                uint32_t half_pct = ((uint64_t)current_flash_addr * 200) / FLIGHT_DATA_FLASH_SIZE;
-                if (half_pct > 200) half_pct = 200;
-                f->flash_used = (uint8_t)half_pct;
-            }
-            f->core_temp    = cached_core_temp;
-            f->ax           = (int16_t)(ax_val * 100);
-            f->ay           = (int16_t)(ay_val * 100);
-            f->az           = (int16_t)(az_val * 100);
-            f->gx           = (int16_t)(gx_val * 1000);
-            f->gy           = (int16_t)(gy_val * 1000);
-            f->gz           = (int16_t)(gz_val * 1000);
-            f->pressure     = current_pressure_pa;
-            f->temperature  = (int8_t)bmp.temperature;
-            f->bat_voltage  = current_bat_voltage;
-            f->p1_voltage   = current_p1_voltage;
-            f->p2_voltage   = current_p2_voltage;
-
-            buffer_index++;
-
-            if (buffer_index >= FRAMES_PER_PAGE) {
-                if (current_flash_addr + FLASH_PAGE_SIZE <= FLIGHT_DATA_FLASH_SIZE) {
-                    rp2040.idleOtherCore();
-                    uint32_t ints = save_and_disable_interrupts();
-                    flash_range_program(flight_flash_offset + current_flash_addr,
-                                        (uint8_t*)page_buffer, FLASH_PAGE_SIZE);
-                    restore_interrupts(ints);
-                    rp2040.resumeOtherCore();
-                    current_flash_addr += FLASH_PAGE_SIZE;
+        // --- Flash logging (flight + post-landing) ---
+        {
+            bool should_log = (current_state >= STATE_ACCELERATING && current_state <= STATE_CHUTE);
+            if (!should_log && current_state == STATE_GROUND) {
+                // Post-landing logging window: keep recording for GROUND_LOG_DURATION_MS
+                static uint32_t ground_log_start_ms = 0;
+                if (ground_log_start_ms == 0) {
+                    ground_log_start_ms = millis();
                 }
-                buffer_index = 0;
+                should_log = (millis() - ground_log_start_ms < GROUND_LOG_DURATION_MS);
+                if (!should_log) {
+                    ground_log_start_ms = 0; // reset for next flight
+                }
+            }
+
+            if (should_log) {
+                LogFrameCore* f = &page_buffer[buffer_index].core;
+
+                f->sync_word    = SYNC_WORD;
+                f->timestamp    = millis();
+                f->apid         = 0;
+                f->flight_state = (uint8_t)current_state;
+                {
+                    uint32_t half_pct = ((uint64_t)current_flash_addr * 200) / FLIGHT_DATA_FLASH_SIZE;
+                    if (half_pct > 200) half_pct = 200;
+                    f->flash_used = (uint8_t)half_pct;
+                }
+                f->core_temp    = cached_core_temp;
+                f->ax           = (int16_t)(ax_val * 100);
+                f->ay           = (int16_t)(ay_val * 100);
+                f->az           = (int16_t)(az_val * 100);
+                f->gx           = (int16_t)(gx_val * 1000);
+                f->gy           = (int16_t)(gy_val * 1000);
+                f->gz           = (int16_t)(gz_val * 1000);
+                f->pressure     = current_pressure_pa;
+                f->temperature  = (int8_t)bmp.temperature;
+                f->bat_voltage  = current_bat_voltage;
+                f->p1_voltage   = current_p1_voltage;
+                f->p2_voltage   = current_p2_voltage;
+
+                buffer_index++;
+
+                if (buffer_index >= FRAMES_PER_PAGE) {
+                    if (current_flash_addr + FLASH_PAGE_SIZE <= FLIGHT_DATA_FLASH_SIZE) {
+                        rp2040.idleOtherCore();
+                        uint32_t ints = save_and_disable_interrupts();
+                        flash_range_program(flight_flash_offset + current_flash_addr,
+                                            (uint8_t*)page_buffer, FLASH_PAGE_SIZE);
+                        restore_interrupts(ints);
+                        rp2040.resumeOtherCore();
+                        current_flash_addr += FLASH_PAGE_SIZE;
+                    }
+                    buffer_index = 0;
+                }
             }
         }
     }
@@ -1131,7 +1201,9 @@ void drainGpsFrame() {
     critical_section_exit(&gps_mailbox_lock);
 
     if (!have_frame) return;
-    if (current_state < STATE_ACCELERATING || current_state > STATE_CHUTE) return;
+    // Allow GPS logging during post-landing window (STATE_GROUND)
+    if (current_state < STATE_ACCELERATING) return;
+    if (current_state > STATE_CHUTE && current_state != STATE_GROUND) return;
     if (buffer_index >= FRAMES_PER_PAGE) return;
 
     memcpy(&page_buffer[buffer_index].gps, &snapped, sizeof(LogFrameGPS));
@@ -2157,7 +2229,7 @@ void printChecklist() {
     Serial.println("==============================================\n");
 
     // --- 1. Sensor detection ---
-    Serial.println("[1/8] SENSOR DETECTION");
+    Serial.println("[1/9] SENSOR DETECTION");
     Serial.printf("  IMU (LSM6DSO32/LSM6DSV16X) : %s\n",
                   (system_errors & 1) ? "FAILED ✗" : "DETECTED ✓");
     Serial.printf("  Barometer (BMP390)         : %s\n",
@@ -2168,8 +2240,26 @@ void printChecklist() {
                   gps_ready ? "DETECTED ✓" : "NO DATA (still acquiring)");
     waitForContinue();
 
-    // --- 2. Recovery channel configuration ---
-    Serial.println("[2/8] RECOVERY CHANNELS");
+    // --- 2. Orientation check (X-axis acceleration) ---
+    Serial.println("[2/9] ORIENTATION CHECK");
+    Serial.printf("  X-axis acceleration : %.2f G\n", current_accel_x);
+    if (current_accel_x >= 0.9f && current_accel_x <= 1.1f) {
+        Serial.println("  ✓ Rocket is vertical, IS_UPSIDE_DOWN is correct.");
+    } else if (current_accel_x >= -1.1f && current_accel_x <= -0.9f) {
+        Serial.println("  ✗ CRITICAL: X-axis reads ~-1 G but IS_UPSIDE_DOWN is set to "
+                        + String(IS_UPSIDE_DOWN ? "false" : "true") + ".");
+        Serial.println("    If the rocket is nose-up on the rail, set IS_UPSIDE_DOWN to "
+                        + String(IS_UPSIDE_DOWN ? "true" : "false") + ".");
+        Serial.println("    If IS_UPSIDE_DOWN is already correct, the rocket may be upside-down on the rail.");
+    } else {
+        Serial.println("  ✗ CRITICAL: X-axis reads " + String(current_accel_x, 2) + " G — not ~±1 G.");
+        Serial.println("    The rocket is NOT vertical on the launch rail, OR IS_UPSIDE_DOWN is wrong.");
+        Serial.println("    Check that the rocket is standing upright and IS_UPSIDE_DOWN matches orientation.");
+    }
+    waitForContinue();
+
+    // --- 3. Recovery channel configuration ---
+    Serial.println("[3/9] RECOVERY CHANNELS");
     Serial.printf("  Channel 1 (ID1): %s\n",
                   (RECOVERY_TYPE_ID1 == RECOVERY_TYPE_SERVO) ? "SERVO" : "PYRO");
     if (RECOVERY_TYPE_ID1 == RECOVERY_TYPE_SERVO) {
@@ -2184,8 +2274,8 @@ void printChecklist() {
     }
     waitForContinue();
 
-    // --- 3. Flight thresholds ---
-    Serial.println("[3/8] FLIGHT THRESHOLDS");
+    // --- 4. Flight thresholds ---
+    Serial.println("[4/9] FLIGHT THRESHOLDS");
     Serial.printf("  Launch G-force threshold : %.1f G\n", LAUNCH_G_THRESHOLD);
     Serial.printf("  Burnout G-force threshold: %.1f G\n", BURNOUT_G_THRESHOLD);
     Serial.printf("  Apogee dip detection     : %.1f m\n", APOGEE_DIP_METERS);
@@ -2193,24 +2283,24 @@ void printChecklist() {
     Serial.printf("  Orientation (IS_UPSIDE_DOWN): %s\n", IS_UPSIDE_DOWN ? "true" : "false");
     waitForContinue();
 
-    // --- 4. Timing thresholds ---
-    Serial.println("[4/8] TIMING THRESHOLDS");
+    // --- 5. Timing thresholds ---
+    Serial.println("[5/9] TIMING THRESHOLDS");
     Serial.printf("  Min motor burn : %lu ms\n", (unsigned long)MIN_MOTOR_BURN_MS);
     Serial.printf("  Max motor burn : %lu ms\n", (unsigned long)MAX_MOTOR_BURN_MS);
     Serial.printf("  Recovery delay : %lu ms\n", (unsigned long)RECOVERY_DELAY_MS);
     Serial.printf("  Ground wait    : %lu ms\n", (unsigned long)GROUND_WAIT_MS);
     waitForContinue();
 
-    // --- 5. Pyro thresholds (if applicable) ---
-    Serial.println("[5/8] PYRO THRESHOLDS");
+    // --- 6. Pyro thresholds (if applicable) ---
+    Serial.println("[6/9] PYRO THRESHOLDS");
     Serial.printf("  Continuity threshold : %u (ADC)\n", PYRO_CONTINUITY_THRESHOLD);
     Serial.printf("  Fire duration        : %lu ms\n", (unsigned long)PYRO_FIRE_DURATION_MS);
     Serial.printf("  Redeploy timeout     : %lu ms\n", (unsigned long)PYRO_REDEPLOY_TIMEOUT_MS);
     Serial.printf("  Chute descent rate   : %.1f m/s\n", CHUTE_DESCENT_RATE_THRESHOLD);
     waitForContinue();
 
-    // --- 6. Radio configuration ---
-    Serial.println("[6/8] RADIO CONFIGURATION");
+    // --- 7. Radio configuration ---
+    Serial.println("[7/9] RADIO CONFIGURATION");
     Serial.printf("  Frequency : %.1f MHz\n", RADIO_FREQUENCY_MHZ);
     Serial.printf("  ARMED power : %.1f dBm\n", RADIO_POWER_ARMED_DBM);
     Serial.printf("  Flight power: %.1f dBm\n", RADIO_POWER_HIGH_DBM);
@@ -2219,16 +2309,16 @@ void printChecklist() {
     Serial.printf("  Radio hardware        : %s\n", radio_ready ? "READY ✓" : "FAILED ✗");
     waitForContinue();
 
-    // --- 7. GPS configuration ---
-    Serial.println("[7/8] GPS CONFIGURATION");
+    // --- 8. GPS configuration ---
+    Serial.println("[8/9] GPS CONFIGURATION");
     Serial.printf("  Baud rate     : %lu\n", (unsigned long)GPS_BAUD);
     Serial.printf("  Lock loss timeout : %lu ms\n", (unsigned long)GPS_LOCK_LOSS_TIMEOUT_MS);
     Serial.printf("  Watchdog cooldown : %lu ms\n", (unsigned long)GPS_WATCHDOG_COOLDOWN_MS);
     Serial.printf("  GPS hardware      : %s\n", gps_ready ? "DETECTED ✓" : "NO DATA");
     waitForContinue();
 
-    // --- 8. Testbench mode ---
-    Serial.println("[8/8] TESTBENCH MODE");
+    // --- 9. Testbench mode ---
+    Serial.println("[9/9] TESTBENCH MODE");
     Serial.printf("  Testbench mode : %s\n", testbench_active ? "ACTIVE ⚠" : "OFF ✓");
     if (testbench_active) {
         Serial.println("  ⚠ WARNING: Testbench mode is ON. Do not fly!");

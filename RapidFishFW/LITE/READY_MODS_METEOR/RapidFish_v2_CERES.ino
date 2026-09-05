@@ -60,8 +60,8 @@
 // attached. Options:
 //   RECOVERY_TYPE_SERVO  — A servo motor (e.g. for retention / deployment)
 //   RECOVERY_TYPE_PYRO   — A pyrotechnic igniter (e.g. e-match)
-#define RECOVERY_TYPE_ID1  RECOVERY_TYPE_PYRO
-#define RECOVERY_TYPE_ID2  RECOVERY_TYPE_PYRO
+#define RECOVERY_TYPE_ID1  RECOVERY_TYPE_NONE
+#define RECOVERY_TYPE_ID2  RECOVERY_TYPE_NONE
 
 // ---------------------------------------------------------------------------
 // 1b. Servo Angles — [USER] Set lock/unlock positions (0–180°)

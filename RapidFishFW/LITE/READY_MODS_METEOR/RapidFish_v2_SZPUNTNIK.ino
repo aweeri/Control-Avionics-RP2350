@@ -60,8 +60,8 @@
 // attached. Options:
 //   RECOVERY_TYPE_SERVO  — A servo motor (e.g. for retention / deployment)
 //   RECOVERY_TYPE_PYRO   — A pyrotechnic igniter (e.g. e-match)
-#define RECOVERY_TYPE_ID1  RECOVERY_TYPE_PYRO
-#define RECOVERY_TYPE_ID2  RECOVERY_TYPE_PYRO
+#define RECOVERY_TYPE_ID1  RECOVERY_TYPE_SERVO
+#define RECOVERY_TYPE_ID2  RECOVERY_TYPE_NONE
 
 // ---------------------------------------------------------------------------
 // 1b. Servo Angles — [USER] Set lock/unlock positions (0–180°)
@@ -109,7 +109,7 @@
 // ---------------------------------------------------------------------------
 // 1e. Flight Physics Thresholds — [USER] Tune for your rocket
 // ---------------------------------------------------------------------------
-const float LAUNCH_G_THRESHOLD       = 2.0f;   // [USER] G-force to detect liftoff
+const float LAUNCH_G_THRESHOLD       = 3.0f;   // [USER] G-force to detect liftoff
 const float BURNOUT_G_THRESHOLD      = 0.5f;   // [USER] G-force below which = burnout
 const float APOGEE_DIP_METERS        = 6.0f;   // [USER] Altitude drop to confirm apogee
 const float GROUND_G_TOLERANCE       = 0.1f;   // [USER] G-range considered "still"
@@ -119,7 +119,7 @@ const bool  IS_UPSIDE_DOWN           = false;  // [USER] True if rocket is store
 // 1f. Timing Thresholds (milliseconds) — [USER]
 // ---------------------------------------------------------------------------
 const uint32_t MIN_MOTOR_BURN_MS       = 1500;    // [USER] Minimum burn time before burnout check
-const uint32_t MAX_MOTOR_BURN_MS       = 2000;    // [USER] Max burn time (timeout failsafe)
+const uint32_t MAX_MOTOR_BURN_MS       = 3000;    // [USER] Max burn time (timeout failsafe)
 const uint32_t RECOVERY_DELAY_MS       = 0;       // [USER] Delay after deployment before CHUTE
 const uint32_t GROUND_WAIT_MS          = 10000;   // [USER] Time on ground before STATE_GROUND
 const uint32_t GROUND_LOG_DURATION_MS  = 10000;   // [USER] How long to keep logging after landing (ms)

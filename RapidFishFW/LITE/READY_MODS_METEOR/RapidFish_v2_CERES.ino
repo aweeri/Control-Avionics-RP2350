@@ -40,8 +40,6 @@
 #include "hardware/sync.h"
 #include "pico/critical_section.h"
 #include <FastLED.h>
-#include <Adafruit_LSM6DSO32.h>
-#include "SparkFun_LSM6DSV16X.h"
 #include <Wire.h>
 #include <Adafruit_BMP3XX.h>
 #include <RadioLib.h>
@@ -96,7 +94,6 @@
 #define PYRO1_PIN       21    //  Pyro trigger for channel ID1
 #define PYRO2_PIN       22    //  Pyro trigger for channel ID2
 
-#define LSM_CS_PIN      17    //  IMU chip select (SPI0)
 #define BMP_SDA_PIN     4     //  Barometer I2C SDA
 #define BMP_SCL_PIN     5     //  Barometer I2C SCL
 
@@ -109,11 +106,9 @@
 // ---------------------------------------------------------------------------
 // 1e. Flight Physics Thresholds — [USER] Tune for your rocket
 // ---------------------------------------------------------------------------
-const float LAUNCH_G_THRESHOLD       = 2.0f;   // [USER] G-force to detect liftoff
-const float BURNOUT_G_THRESHOLD      = 0.5f;   // [USER] G-force below which = burnout
-const float APOGEE_DIP_METERS        = 6.0f;   // [USER] Altitude drop to confirm apogee
-const float GROUND_G_TOLERANCE       = 0.1f;   // [USER] G-range considered "still"
-const bool  IS_UPSIDE_DOWN           = false;  // [USER] True if rocket is stored upside-down. If SAT logo is upside-down, set true.
+// CERES has no IMU — launch is detected via barometric ascent rate.
+const float LAUNCH_ASCENT_RATE_MPS   = 5.0f;   // [USER] m/s ascent rate to detect liftoff
+const float APOGEE_DIP_METERS        = 20.0f;   // [USER] Altitude drop to confirm apogee
 
 // ---------------------------------------------------------------------------
 // 1f. Timing Thresholds (milliseconds) — [USER]
@@ -255,9 +250,6 @@ static_assert(sizeof(union LogFrame) == 32, "LogFrame union must be 32 bytes");
 
 // --- Hardware objects ---
 CRGB leds[NUM_LEDS];
-Adafruit_LSM6DSO32 lsm_dsox;
-SparkFun_LSM6DSV16X_SPI lsm_dsv;
-bool use_dsox = false;
 Adafruit_BMP3XX bmp;
 
 // RadioLib re-clocks SPI each transaction; pass explicit SPISettings to override.
@@ -508,7 +500,6 @@ void setup() {
     if (system_errors > 0) {
         if (force_armed) {
             Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR (force_armed=true) ***");
-            if (system_errors & 1) Serial.println("- IMU failed. Data zeroed.");
             if (system_errors & 2) Serial.println("- Barometer failed. Data zeroed.");
             if (system_errors & 4) Serial.printf("- Radio failed. Code: %d\n", radio_error_code);
             ch1_fired = false;
@@ -520,7 +511,6 @@ void setup() {
         } else {
             current_state = STATE_ERROR;
             Serial.println("\n*** BOOT FAILURE: SENSOR/RADIO ERROR ***");
-            if (system_errors & 1) Serial.println("- IMU failed.");
             if (system_errors & 2) Serial.println("- Barometer failed.");
             if (system_errors & 4) Serial.printf("- Radio failed. Code: %d\n", radio_error_code);
             Serial.println("System halted in STATE_ERROR. Type ARM to force-start, or REBOOT.");
@@ -719,13 +709,17 @@ void loop() {
             break;
 
         case STATE_ARMED: {
+            // CERES has no IMU — detect launch via barometric ascent rate.
+            // current_descent_rate is negative during ascent (altitude increasing).
             static uint32_t launch_detect_start = 0;
-            if (current_accel_x > LAUNCH_G_THRESHOLD) {
+            // During ascent, descent_rate is negative. Use absolute value check.
+            float ascent_rate = -current_descent_rate; // positive = going up
+            if (ascent_rate > LAUNCH_ASCENT_RATE_MPS) {
                 if (launch_detect_start == 0) launch_detect_start = now;
-                else if (now - launch_detect_start > 50) {
+                else if (now - launch_detect_start > 100) {
                     current_state = STATE_ACCELERATING;
                     state_start_time = now;
-                    Serial.println("Liftoff detected.");
+                    Serial.println("Liftoff detected (baro ascent rate).");
                     startBuzzerPattern(BUZZER_LIFTOFF_SPAM);
                 }
             } else {
@@ -735,16 +729,11 @@ void loop() {
         }
 
         case STATE_ACCELERATING:
-            if ((now - state_start_time > MIN_MOTOR_BURN_MS) &&
-                (current_accel_x < BURNOUT_G_THRESHOLD)) {
+            // CERES has no IMU — burnout is purely timer-based.
+            if (now - state_start_time > MAX_MOTOR_BURN_MS) {
                 current_state = STATE_COAST;
                 state_start_time = now;
-                Serial.println("Burnout detected.");
-            }
-            else if (now - state_start_time > MAX_MOTOR_BURN_MS) {
-                current_state = STATE_COAST;
-                state_start_time = now;
-                Serial.println("Burnout detected (timeout failsafe).");
+                Serial.println("Burnout detected (timer).");
             }
             break;
 
@@ -796,17 +785,14 @@ void loop() {
             }
 
             // --- Ground detection early exit ---
-            // If we're low, still, and not descending, we're on the ground.
-            // This prevents the descent-rate integrator from falsely confirming
-            // a chute when the rocket has already impacted.
+            // If we're low and not descending, we're on the ground.
+            // CERES has no IMU, so gyro check is omitted.
             {
                 const float GROUND_ALT_TOLERANCE = 50.0f;
-                const float GYRO_STILL_TOL = 0.4f;
                 const float DESCENT_NEAR_ZERO = 1.0f;
                 static uint32_t ground_confirm_start = 0;
 
                 bool on_ground = (current_altitude < GROUND_ALT_TOLERANCE &&
-                                  current_gyro_mag <= GYRO_STILL_TOL &&
                                   fabsf(current_descent_rate) < DESCENT_NEAR_ZERO);
 
                 if (on_ground) {
@@ -919,7 +905,6 @@ void loop() {
         }
 
         case STATE_CHUTE: {
-            const float GYRO_STILL_TOLERANCE = 0.4f;
             const float GROUND_ALTITUDE_TOLERANCE = 50.0f;
             const uint32_t CHUTE_PANIC_TIMEOUT_MS = 30000; // 30 s in CHUTE without ground → panic
             static uint32_t chute_entry_time = 0;
@@ -932,10 +917,10 @@ void loop() {
             }
 
             bool chute_deployed = (current_descent_rate < CHUTE_DESCENT_RATE_THRESHOLD);
-            bool gyro_still     = (current_gyro_mag <= GYRO_STILL_TOLERANCE);
             bool low_altitude   = (current_altitude <= GROUND_ALTITUDE_TOLERANCE);
 
-            if (chute_deployed && gyro_still && low_altitude) {
+            // CERES has no IMU — gyro check omitted; rely on altitude + descent rate.
+            if (chute_deployed && low_altitude) {
                 if (now - state_start_time > GROUND_WAIT_MS) {
                     chute_entry_time = 0;
                     flushPageBuffer();
@@ -993,49 +978,10 @@ void loop() {
 // =============================================================================
 // [4] CORE 1: HIGH-FREQUENCY SENSOR ACQUISITION & FLASH LOGGING
 // =============================================================================
+// CERES has no IMU — only barometer and core temperature are sampled.
 
 void setup1() {
     delay(5000);
-
-    pinMode(LSM_CS_PIN, OUTPUT);
-    digitalWrite(LSM_CS_PIN, HIGH);
-    delay(10);
-
-    SPI.setRX(16);
-    SPI.setSCK(18);
-    SPI.setTX(19);
-    SPI.begin();
-
-    digitalWrite(LSM_CS_PIN, LOW);
-    delay(5);
-    digitalWrite(LSM_CS_PIN, HIGH);
-    delay(5);
-
-    if (lsm_dsox.begin_SPI(LSM_CS_PIN)) {
-        use_dsox = true;
-        lsm_dsox.setAccelDataRate(LSM6DS_RATE_1_66K_HZ);
-        lsm_dsox.setAccelRange(LSM6DSO32_ACCEL_RANGE_16_G);
-        lsm_dsox.setGyroDataRate(LSM6DS_RATE_1_66K_HZ);
-        lsm_dsox.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
-    } else {
-        digitalWrite(LSM_CS_PIN, HIGH);
-        delay(10);
-
-        if (lsm_dsv.begin(LSM_CS_PIN)) {
-            use_dsox = false;
-            lsm_dsv.deviceReset();
-            while (!lsm_dsv.getDeviceReset()) { delay(1); }
-            lsm_dsv.enableBlockDataUpdate();
-            lsm_dsv.setAccelDataRate(LSM6DSV16X_ODR_AT_1920Hz);
-            lsm_dsv.setAccelFullScale(LSM6DSV16X_16g);
-            lsm_dsv.setGyroDataRate(LSM6DSV16X_ODR_AT_1920Hz);
-            lsm_dsv.setGyroFullScale(LSM6DSV16X_2000dps);
-        } else {
-            critical_section_enter_blocking(&system_errors_lock);
-            system_errors |= 1;
-            critical_section_exit(&system_errors_lock);
-        }
-    }
 
     Wire.setSDA(BMP_SDA_PIN);
     Wire.setSCL(BMP_SCL_PIN);
@@ -1077,49 +1023,7 @@ void loop1() {
         if (micros() - last_sample_micros > 10000) last_sample_micros = micros();
         else last_sample_micros += 1000;
 
-        float ax_val = 0.0f, ay_val = 0.0f, az_val = 0.0f;
-        float gx_val = 0.0f, gy_val = 0.0f, gz_val = 0.0f;
-
-        if (!(system_errors & 1)) {
-            if (use_dsox) {
-                sensors_event_t accel, gyro, temp;
-                lsm_dsox.getEvent(&accel, &gyro, &temp);
-                ax_val = accel.acceleration.x;
-                ay_val = accel.acceleration.y;
-                az_val = accel.acceleration.z;
-                gx_val = gyro.gyro.x;
-                gy_val = gyro.gyro.y;
-                gz_val = gyro.gyro.z;
-            } else {
-                sfe_lsm_data_t accelData, gyroData;
-                if (lsm_dsv.checkStatus()) {
-                    lsm_dsv.getAccel(&accelData);
-                    lsm_dsv.getGyro(&gyroData);
-                    ax_val = (accelData.xData / 1000.0f) * 9.81f;
-                    ay_val = (accelData.yData / 1000.0f) * 9.81f;
-                    az_val = (accelData.zData / 1000.0f) * 9.81f;
-                    gx_val = (gyroData.xData / 1000.0f) * 0.0174533f;
-                    gy_val = (gyroData.yData / 1000.0f) * 0.0174533f;
-                    gz_val = (gyroData.zData / 1000.0f) * 0.0174533f;
-                }
-            }
-        }
-
-        float x_mod = IS_UPSIDE_DOWN ? -1.0f : 1.0f;
-
-        current_accel_x = (ax_val * x_mod) / 9.81f;
-        current_accel_y = ay_val / 9.81f;
-        current_accel_z = az_val / 9.81f;
-        current_gforce = sqrtf((ax_val * ax_val) +
-                               (ay_val * ay_val) +
-                               (az_val * az_val)) / 9.81f;
-
-        current_gyro_x = gx_val * x_mod;
-        current_gyro_y = gy_val;
-        current_gyro_z = gz_val;
-        current_gyro_mag = sqrtf((gx_val * gx_val) +
-                                 (gy_val * gy_val) +
-                                 (gz_val * gz_val));
+        // CERES has no IMU — accel/gyro values stay zeroed.
 
         static uint8_t decimator = 0;
         if (++decimator >= 5) {
@@ -1188,12 +1092,9 @@ void loop1() {
                     f->flash_used = (uint8_t)half_pct;
                 }
                 f->core_temp    = cached_core_temp;
-                f->ax           = (int16_t)(ax_val * 100);
-                f->ay           = (int16_t)(ay_val * 100);
-                f->az           = (int16_t)(az_val * 100);
-                f->gx           = (int16_t)(gx_val * 1000);
-                f->gy           = (int16_t)(gy_val * 1000);
-                f->gz           = (int16_t)(gz_val * 1000);
+                // CERES has no IMU — log zeroed accel/gyro.
+                f->ax = f->ay = f->az = 0;
+                f->gx = f->gy = f->gz = 0;
                 f->pressure     = current_pressure_pa;
                 f->temperature  = (int8_t)bmp.temperature;
                 f->bat_voltage  = current_bat_voltage;
@@ -2212,9 +2113,7 @@ void printStatus() {
     }
     Serial.println();
     Serial.printf("Descent Rate  : %.2f m/s\n", current_descent_rate);
-    Serial.printf("Accel         : X:%.2f G | Y:%.2f G | Z:%.2f G\n",
-                  current_accel_x, current_accel_y, current_accel_z);
-    Serial.printf("Gyro Mag      : %.2f rad/s\n", current_gyro_mag);
+    Serial.println("Accel/Gyro    : N/A (no IMU on CERES)");
     Serial.println("----------------------------------------------");
     Serial.printf("Main Battery  : %.2f V\n", bat_v);
     if (RECOVERY_TYPE_ID1 == RECOVERY_TYPE_SERVO) {
@@ -2287,9 +2186,8 @@ void printChecklist() {
     Serial.println("==============================================\n");
 
     // --- 1. Sensor detection ---
-    Serial.println("[1/9] SENSOR DETECTION");
-    Serial.printf("  IMU (LSM6DSO32/LSM6DSV16X) : %s\n",
-                  (system_errors & 1) ? "FAILED ✗" : "DETECTED ✓");
+    Serial.println("[1/8] SENSOR DETECTION");
+    Serial.println("  IMU (LSM6DSO32/LSM6DSV16X) : N/A (CERES has no IMU)");
     Serial.printf("  Barometer (BMP390)         : %s\n",
                   (system_errors & 2) ? "FAILED ✗" : "DETECTED ✓");
     Serial.printf("  Radio (LR2021)             : %s\n",
@@ -2298,26 +2196,8 @@ void printChecklist() {
                   gps_ready ? "DETECTED ✓" : "NO DATA (still acquiring)");
     waitForContinue();
 
-    // --- 2. Orientation check (X-axis acceleration) ---
-    Serial.println("[2/9] ORIENTATION CHECK");
-    Serial.printf("  X-axis acceleration : %.2f G\n", current_accel_x);
-    if (current_accel_x >= 0.9f && current_accel_x <= 1.1f) {
-        Serial.println("  ✓ Rocket is vertical, IS_UPSIDE_DOWN is correct.");
-    } else if (current_accel_x >= -1.1f && current_accel_x <= -0.9f) {
-        Serial.println("  ✗ CRITICAL: X-axis reads ~-1 G but IS_UPSIDE_DOWN is set to "
-                        + String(IS_UPSIDE_DOWN ? "false" : "true") + ".");
-        Serial.println("    If the rocket is nose-up on the rail, set IS_UPSIDE_DOWN to "
-                        + String(IS_UPSIDE_DOWN ? "true" : "false") + ".");
-        Serial.println("    If IS_UPSIDE_DOWN is already correct, the rocket may be upside-down on the rail.");
-    } else {
-        Serial.println("  ✗ CRITICAL: X-axis reads " + String(current_accel_x, 2) + " G — not ~±1 G.");
-        Serial.println("    The rocket is NOT vertical on the launch rail, OR IS_UPSIDE_DOWN is wrong.");
-        Serial.println("    Check that the rocket is standing upright and IS_UPSIDE_DOWN matches orientation.");
-    }
-    waitForContinue();
-
-    // --- 3. Recovery channel configuration ---
-    Serial.println("[3/9] RECOVERY CHANNELS");
+    // --- 2. Recovery channel configuration ---
+    Serial.println("[2/8] RECOVERY CHANNELS");
     Serial.printf("  Channel 1 (ID1): %s\n",
                   (RECOVERY_TYPE_ID1 == RECOVERY_TYPE_SERVO) ? "SERVO" :
                   (RECOVERY_TYPE_ID1 == RECOVERY_TYPE_PYRO)  ? "PYRO"  : "NONE");
@@ -2334,33 +2214,30 @@ void printChecklist() {
     }
     waitForContinue();
 
-    // --- 4. Flight thresholds ---
-    Serial.println("[4/9] FLIGHT THRESHOLDS");
-    Serial.printf("  Launch G-force threshold : %.1f G\n", LAUNCH_G_THRESHOLD);
-    Serial.printf("  Burnout G-force threshold: %.1f G\n", BURNOUT_G_THRESHOLD);
-    Serial.printf("  Apogee dip detection     : %.1f m\n", APOGEE_DIP_METERS);
-    Serial.printf("  Ground G tolerance       : %.1f G\n", GROUND_G_TOLERANCE);
-    Serial.printf("  Orientation (IS_UPSIDE_DOWN): %s\n", IS_UPSIDE_DOWN ? "true" : "false");
+    // --- 3. Flight thresholds ---
+    Serial.println("[3/8] FLIGHT THRESHOLDS");
+    Serial.printf("  Launch ascent rate threshold : %.1f m/s\n", LAUNCH_ASCENT_RATE_MPS);
+    Serial.printf("  Apogee dip detection         : %.1f m\n", APOGEE_DIP_METERS);
     waitForContinue();
 
-    // --- 5. Timing thresholds ---
-    Serial.println("[5/9] TIMING THRESHOLDS");
+    // --- 4. Timing thresholds ---
+    Serial.println("[4/8] TIMING THRESHOLDS");
     Serial.printf("  Min motor burn : %lu ms\n", (unsigned long)MIN_MOTOR_BURN_MS);
     Serial.printf("  Max motor burn : %lu ms\n", (unsigned long)MAX_MOTOR_BURN_MS);
     Serial.printf("  Recovery delay : %lu ms\n", (unsigned long)RECOVERY_DELAY_MS);
     Serial.printf("  Ground wait    : %lu ms\n", (unsigned long)GROUND_WAIT_MS);
     waitForContinue();
 
-    // --- 6. Pyro thresholds (if applicable) ---
-    Serial.println("[6/9] PYRO THRESHOLDS");
+    // --- 5. Pyro thresholds (if applicable) ---
+    Serial.println("[5/8] PYRO THRESHOLDS");
     Serial.printf("  Continuity threshold : %u (ADC)\n", PYRO_CONTINUITY_THRESHOLD);
     Serial.printf("  Fire duration        : %lu ms\n", (unsigned long)PYRO_FIRE_DURATION_MS);
     Serial.printf("  Redeploy timeout     : %lu ms\n", (unsigned long)PYRO_REDEPLOY_TIMEOUT_MS);
     Serial.printf("  Chute descent rate   : %.1f m/s\n", CHUTE_DESCENT_RATE_THRESHOLD);
     waitForContinue();
 
-    // --- 7. Radio configuration ---
-    Serial.println("[7/9] RADIO CONFIGURATION");
+    // --- 6. Radio configuration ---
+    Serial.println("[6/8] RADIO CONFIGURATION");
     Serial.printf("  Frequency : %.1f MHz\n", RADIO_FREQUENCY_MHZ);
     Serial.printf("  ARMED power : %.1f dBm\n", RADIO_POWER_ARMED_DBM);
     Serial.printf("  Flight power: %.1f dBm\n", RADIO_POWER_HIGH_DBM);
@@ -2369,16 +2246,16 @@ void printChecklist() {
     Serial.printf("  Radio hardware        : %s\n", radio_ready ? "READY ✓" : "FAILED ✗");
     waitForContinue();
 
-    // --- 8. GPS configuration ---
-    Serial.println("[8/9] GPS CONFIGURATION");
+    // --- 7. GPS configuration ---
+    Serial.println("[7/8] GPS CONFIGURATION");
     Serial.printf("  Baud rate     : %lu\n", (unsigned long)GPS_BAUD);
     Serial.printf("  Lock loss timeout : %lu ms\n", (unsigned long)GPS_LOCK_LOSS_TIMEOUT_MS);
     Serial.printf("  Watchdog cooldown : %lu ms\n", (unsigned long)GPS_WATCHDOG_COOLDOWN_MS);
     Serial.printf("  GPS hardware      : %s\n", gps_ready ? "DETECTED ✓" : "NO DATA");
     waitForContinue();
 
-    // --- 9. Testbench mode ---
-    Serial.println("[9/9] TESTBENCH MODE");
+    // --- 8. Testbench mode ---
+    Serial.println("[8/8] TESTBENCH MODE");
     Serial.printf("  Testbench mode : %s\n", testbench_active ? "ACTIVE ⚠" : "OFF ✓");
     if (testbench_active) {
         Serial.println("  ⚠ WARNING: Testbench mode is ON. Do not fly!");

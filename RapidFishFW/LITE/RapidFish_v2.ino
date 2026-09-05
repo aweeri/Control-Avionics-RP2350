@@ -795,6 +795,12 @@ void loop() {
                 }
             }
 
+            // --- Chute confirmation via descent-rate integrator ---
+            // Declared here (before ground detection) so both blocks can reference them.
+            const uint32_t CHUTE_CONFIRM_MS = 5000;
+            static uint32_t chute_integrator_ms = 0;
+            static uint32_t last_integrator_tick = 0;
+
             // --- Ground detection early exit ---
             // If we're low, still, and not descending, we're on the ground.
             // This prevents the descent-rate integrator from falsely confirming
@@ -827,11 +833,6 @@ void loop() {
                     ground_confirm_start = 0;
                 }
             }
-
-            // --- Chute confirmation via descent-rate integrator ---
-            const uint32_t CHUTE_CONFIRM_MS = 5000;
-            static uint32_t chute_integrator_ms = 0;
-            static uint32_t last_integrator_tick = 0;
 
             const uint32_t MIN_CHUTE_DEPLOY_TIME_MS = 3000;
             uint32_t time_in_recovery = now - state_start_time;

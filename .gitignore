@@ -30,6 +30,7 @@ fab/
 fabrication/
 production/
 outputs/
+plans/
 
 # Fabrication files (If generated in the root directory)
 *.gbr

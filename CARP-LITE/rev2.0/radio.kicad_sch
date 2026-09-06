@@ -1990,6 +1990,10 @@
 		(uuid "fdfa4c19-2653-4af1-afaf-07fa78527a20")
 	)
 	(no_connect
+		(at 95.25 43.18)
+		(uuid "0e846adb-f410-4455-be0b-6bd09c03767c")
+	)
+	(no_connect
 		(at 95.25 40.64)
 		(uuid "4d8c8510-2142-4527-abdd-ac92ece2ed9e")
 	)
@@ -2164,16 +2168,6 @@
 			(type default)
 		)
 		(uuid "226ea16a-7b63-4a50-bdaa-bf2535f9f2ca")
-	)
-	(wire
-		(pts
-			(xy 83.82 43.18) (xy 95.25 43.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "26c4f304-a639-40de-a035-788a4269da49")
 	)
 	(wire
 		(pts
@@ -2624,16 +2618,6 @@
 			(type default)
 		)
 		(uuid "93dac0e6-ecd7-473e-9d7f-6a7006c01c4f")
-	)
-	(wire
-		(pts
-			(xy 27.94 45.72) (xy 39.37 45.72)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "94e6bb58-9fcf-47a4-a4d6-62656bedba1f")
 	)
 	(wire
 		(pts
@@ -3145,16 +3129,6 @@
 		)
 		(uuid "0138162c-24b3-4774-8bda-cd2123f4f1c3")
 	)
-	(label "DIO6"
-		(at 27.94 45.72 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "05be03c3-7fc6-4354-9e19-ac22c5ffbd6f")
-	)
 	(label "BUSY"
 		(at 27.94 53.34 0)
 		(effects
@@ -3164,16 +3138,6 @@
 			(justify left bottom)
 		)
 		(uuid "0ed905b6-42f6-4238-bed0-cb856c75bff5")
-	)
-	(label "DIO6"
-		(at 83.82 43.18 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "142ed93e-a09a-4661-9964-585887dbee52")
 	)
 	(label "CS"
 		(at 83.82 55.88 0)
@@ -3449,17 +3413,6 @@
 			(justify left)
 		)
 		(uuid "63f98d43-38a5-4d54-8b7b-a58da79efeaf")
-	)
-	(hierarchical_label "RADIO_DIO6"
-		(shape bidirectional)
-		(at 39.37 45.72 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "8df45500-4677-49b2-8dcf-51ab160077f5")
 	)
 	(hierarchical_label "RADIO_BUSY"
 		(shape input)

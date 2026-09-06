@@ -39,3 +39,5 @@ plans/
 *.pos
 *.rpt
 CARP-LITE/.history
+
+CARP-LITE/CARP-backups/

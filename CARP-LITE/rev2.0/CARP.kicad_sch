@@ -23240,10 +23240,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "8548fed3-0cdd-4601-ab70-95f0909e1c45")
 		(property "Reference" "C28"
-			(at 101.6 84.5438 0)
+			(at 101.6 85.09 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -23254,7 +23253,7 @@
 			)
 		)
 		(property "Value" "220u"
-			(at 101.6 87.0838 0)
+			(at 101.6 87.63 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects

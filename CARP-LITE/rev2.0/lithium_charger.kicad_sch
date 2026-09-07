@@ -2,8 +2,15 @@
 	(version 20260306)
 	(generator "eeschema")
 	(generator_version "10.0")
-	(uuid "ca5e73a9-a980-4a6e-b733-602883ef26e5")
+	(uuid "31b23b33-3ec9-4905-a473-06c435292cdb")
 	(paper "A4")
+	(title_block
+		(title "CARP-LITE")
+		(date "2026-09-07")
+		(rev "V2")
+		(company "Silesian Aerospace Technologies")
+		(comment 1 "Aria Wiktoria Horak")
+	)
 	(lib_symbols
 		(symbol "Battery_Management:BQ25798"
 			(exclude_from_sim no)

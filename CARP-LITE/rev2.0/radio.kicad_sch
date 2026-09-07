@@ -6,11 +6,10 @@
 	(paper "A4")
 	(title_block
 		(title "CARP-LITE")
-		(date "2026-06-29")
-		(rev "V1")
+		(date "2026-09-07")
+		(rev "V2")
 		(company "Silesian Aerospace Technologies")
-		(comment 1 "Marcin Czop")
-		(comment 2 "Aria Wiktoria Horak")
+		(comment 1 "Aria Wiktoria Horak")
 	)
 	(lib_symbols
 		(symbol "Connector:Conn_Coaxial_Small"

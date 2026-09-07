@@ -757,7 +757,7 @@
         "uuid": "94683f5c-9cd9-448e-be96-9792537b5cb8"
       }
     ],
-    "used_designators": "J2,J7,#PWR77-78",
+    "used_designators": "R28,R38-41,J2,J4,J7,D3,L15,#PWR6,#PWR9-10,#PWR14,#PWR37,#PWR56-57,#PWR77-78,#PWR80,#PWR86-88,#PWR95-99,#PWR111,#PWR118-124,U1,C5,C30,C34,C65-76",
     "variants": []
   },
   "sheets": [
@@ -768,6 +768,10 @@
     [
       "fbf78cf6-1e60-4f5c-8e3f-17a0841f8e52",
       "Radio"
+    ],
+    [
+      "4876be96-b063-438e-9f90-27783f3ee277",
+      "Lithium Charger"
     ]
   ],
   "text_variables": {},

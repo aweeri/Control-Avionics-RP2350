@@ -14104,7 +14104,7 @@
 		)
 		(uuid "3b4ba991-ea61-48f9-89c6-c9fe5e55fd48")
 	)
-	(label "GPIO6"
+	(label "GPIO7"
 		(at 115.57 212.09 0)
 		(effects
 			(font

@@ -7555,145 +7555,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "power:+8V"
-			(power global)
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(offset 0)
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "#PWR"
-				(at 0 -3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "+8V"
-				(at 0 3.556 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Power symbol creates a global label with name \"+8V\""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "global power"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "+8V_0_1"
-				(polyline
-					(pts
-						(xy -0.762 1.27) (xy 0 2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 2.54) (xy 0.762 1.27)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "+8V_1_1"
-				(pin power_in line
-					(at 0 0 90)
-					(length 0)
-					(name ""
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "power:GND"
 			(power global)
 			(pin_names
@@ -8240,12 +8101,6 @@
 		(uuid "27dd99f4-2cf1-4ddf-b282-4ff4e2146673")
 	)
 	(junction
-		(at 57.15 88.9)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "03bfb31b-40b0-49d0-8d4d-41a1f55a8cfe")
-	)
-	(junction
 		(at 337.82 26.67)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -8682,6 +8537,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c8207ddd-2ee4-4b08-adb3-32c74b2e1dec")
+	)
+	(junction
+		(at 57.15 88.9)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c84c7fa7-c2d6-4aca-b7e3-ed9c36496673")
 	)
 	(junction
 		(at 314.96 38.1)
@@ -9123,16 +8984,6 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 88.9) (xy 59.69 88.9)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1f3acb4f-1e7b-405a-9092-ecff9258de1c")
-	)
-	(wire
-		(pts
 			(xy 303.53 27.94) (xy 303.53 26.67)
 		)
 		(stroke
@@ -9450,6 +9301,16 @@
 			(type default)
 		)
 		(uuid "357f126d-3dff-47c4-a720-5158e0c66da5")
+	)
+	(wire
+		(pts
+			(xy 88.9 104.14) (xy 92.71 104.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "35dd9d53-863f-4710-891f-49f3d4d21a4d")
 	)
 	(wire
 		(pts
@@ -10993,7 +10854,7 @@
 	)
 	(wire
 		(pts
-			(xy 45.72 81.28) (xy 52.07 81.28)
+			(xy 45.72 81.28) (xy 54.61 81.28)
 		)
 		(stroke
 			(width 0)
@@ -14233,7 +14094,7 @@
 		(uuid "7a28e8bd-2a90-4fd5-b883-629f9e1f543d")
 	)
 	(label "VBUS"
-		(at 52.07 81.28 180)
+		(at 54.61 81.28 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -14761,6 +14622,16 @@
 			(justify left bottom)
 		)
 		(uuid "edd80b60-e96f-4b47-91e5-1cb03f633e4d")
+	)
+	(label "BAT"
+		(at 88.9 104.14 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f0146e01-4d9d-403e-935d-0dda94d461e6")
 	)
 	(label "GPIO15"
 		(at 351.79 111.76 180)
@@ -18684,84 +18555,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+8V")
-		(at 92.71 104.14 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "32f26ae9-87d4-446d-8262-29601334e01a")
-		(property "Reference" "#PWR058"
-			(at 92.71 107.95 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+2S"
-			(at 92.71 100.33 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 92.71 104.14 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 92.71 104.14 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+8V\""
-			(at 92.71 104.14 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "66f518fe-8f78-4436-90ee-96e96e3c40a1")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8"
-					(reference "#PWR058")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 250.825 85.09 270)
 		(unit 1)
@@ -19622,7 +19415,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 59.69 88.9 0)
+		(at 57.15 88.9 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -19632,7 +19425,7 @@
 		(dnp no)
 		(uuid "499b89b0-1372-40ef-8803-f0d133da4d01")
 		(property "Reference" "#PWR07"
-			(at 59.69 95.25 0)
+			(at 57.15 95.25 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19643,7 +19436,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 63.754 90.932 0)
+			(at 61.214 90.932 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -19653,7 +19446,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 59.69 88.9 0)
+			(at 57.15 88.9 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19664,7 +19457,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 59.69 88.9 0)
+			(at 57.15 88.9 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19675,7 +19468,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 59.69 88.9 0)
+			(at 57.15 88.9 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects

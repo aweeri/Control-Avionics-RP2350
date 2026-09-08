@@ -268,7 +268,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": "V1"
+      "sch_revision": "V2"
     },
     "layer_pairs": [
       {
@@ -757,7 +757,7 @@
         "uuid": "94683f5c-9cd9-448e-be96-9792537b5cb8"
       }
     ],
-    "used_designators": "J2,J7,#PWR77-78",
+    "used_designators": "#PWR71,#PWR81,#PWR88",
     "variants": []
   },
   "sheets": [
@@ -768,6 +768,10 @@
     [
       "fbf78cf6-1e60-4f5c-8e3f-17a0841f8e52",
       "Radio"
+    ],
+    [
+      "4876be96-b063-438e-9f90-27783f3ee277",
+      "Lithium Charger"
     ]
   ],
   "text_variables": {},

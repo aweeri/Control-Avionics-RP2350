@@ -1625,12 +1625,6 @@
 		(uuid "789f2eb0-00ca-4b8e-bf89-f730461afb9d")
 	)
 	(junction
-		(at 172.72 71.12)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "89d6aeb1-2e38-456f-bc60-e5a51952cf4a")
-	)
-	(junction
 		(at 133.35 66.04)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1665,12 +1659,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "d2f2e233-f1e3-4312-9374-6a66eda0abee")
-	)
-	(junction
-		(at 177.8 66.04)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "e9d0992a-816f-46c8-a7fa-d5ef122ca935")
 	)
 	(no_connect
 		(at 139.7 91.44)
@@ -1710,7 +1698,7 @@
 	)
 	(wire
 		(pts
-			(xy 177.8 66.04) (xy 172.72 66.04)
+			(xy 172.72 66.04) (xy 177.8 66.04)
 		)
 		(stroke
 			(width 0)
@@ -1820,16 +1808,6 @@
 	)
 	(wire
 		(pts
-			(xy 172.72 71.12) (xy 177.8 71.12)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "3f71f5a1-5cfa-48aa-a1c8-d88a2b5a4fea")
-	)
-	(wire
-		(pts
 			(xy 160.02 127) (xy 161.29 127)
 		)
 		(stroke
@@ -1890,7 +1868,7 @@
 	)
 	(wire
 		(pts
-			(xy 182.88 66.04) (xy 182.88 67.31)
+			(xy 177.8 66.04) (xy 177.8 67.31)
 		)
 		(stroke
 			(width 0)
@@ -1947,16 +1925,6 @@
 			(type default)
 		)
 		(uuid "87de217a-9472-4248-b3df-f34131734eec")
-	)
-	(wire
-		(pts
-			(xy 177.8 66.04) (xy 182.88 66.04)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "94e4266f-ffa0-4f6d-bbd8-dfcab8413d19")
 	)
 	(wire
 		(pts
@@ -3010,7 +2978,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 162.56 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -3703,7 +3671,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 182.88 67.31 0)
+		(at 177.8 67.31 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3713,7 +3681,7 @@
 		(dnp no)
 		(uuid "5d01dc3b-7bfa-4fa1-891a-5f25e9650fb2")
 		(property "Reference" "#PWR0118"
-			(at 182.88 73.66 0)
+			(at 177.8 73.66 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3724,7 +3692,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 183.007 71.7042 0)
+			(at 177.927 71.7042 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3735,7 +3703,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 182.88 67.31 0)
+			(at 177.8 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3746,7 +3714,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 182.88 67.31 0)
+			(at 177.8 67.31 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3757,7 +3725,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 182.88 67.31 0)
+			(at 177.8 67.31 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4754,87 +4722,6 @@
 			(project "CARP"
 				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8/4876be96-b063-438e-9f90-27783f3ee277"
 					(reference "#PWR086")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:C_Small")
-		(at 177.8 68.58 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "b021a888-6b91-4b74-b7c4-5243fd5615d0")
-		(property "Reference" "C72"
-			(at 181.864 67.056 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10u"
-			(at 179.578 72.898 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
-			(at 177.8 68.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 177.8 68.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unpolarized capacitor, small symbol"
-			(at 177.8 68.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "64971a75-f92a-48a0-afbb-2ccc942e633f")
-		)
-		(pin "1"
-			(uuid "44a83ee4-c008-47dc-a147-49fe6a2af3cd")
-		)
-		(instances
-			(project "CARP"
-				(path "/94683f5c-9cd9-448e-be96-9792537b5cb8/4876be96-b063-438e-9f90-27783f3ee277"
-					(reference "C72")
 					(unit 1)
 				)
 			)

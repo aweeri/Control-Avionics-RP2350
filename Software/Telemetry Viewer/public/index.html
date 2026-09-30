@@ -1051,11 +1051,8 @@ function updateAttitude(f, now) {
     if (mag > 0.3) {
       state.att.idle = false;
       // The accelerometer measures the reaction force, which points AWAY from
-      // gravity — i.e. it points "up". Convert sensor → rocket coords:
-      //   sensor +X = tail, +Y = right, +Z = belly
-      //   rocket  +Y = nose, +Z = belly, +X = right
-      //   ⇒ up_rocket = (ay, -ax, az)
-      let ux = ay / mag, uy = -ax / mag, uz = az / mag;
+
+      let ux = -ay / mag, uy = ax / mag, uz = -az / mag;
       // Orthonormal basis with the arrow nose (model +Y) = up_rocket.
       // right = normalize(cross((0,0,1), u)) — stable roll reference.
       let rx = -uy, ry = ux, rz = 0;
